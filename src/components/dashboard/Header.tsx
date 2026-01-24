@@ -54,7 +54,7 @@ export function Header() {
       <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
         <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
           Paradise Yatra
-        </h1>
+          </h1>
 
         <div className="flex items-center gap-3">
           {isAdmin && (

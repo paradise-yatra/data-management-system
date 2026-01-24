@@ -80,13 +80,13 @@ export function DataTable({
       
       return date.toLocaleString('en-IN', {
         timeZone: 'Asia/Kolkata',
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
-      });
+    });
     } catch (error) {
       return dateString;
     }
@@ -207,7 +207,7 @@ export function DataTable({
                                 {hasMore && (
                                   <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
                                     ...
-                                  </span>
+                      </span>
                                 )}
                               </>
                             );

@@ -196,49 +196,49 @@ export function RecordModal({
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-foreground">
-                    Name <span className="text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input
-                    id="name"
-                    {...register('name')}
-                    placeholder="Enter name"
-                    className="border-border bg-background"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-foreground">
+                  Name <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="name"
+                  {...register('name')}
+                  placeholder="Enter name"
+                  className="border-border bg-background"
+                />
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-foreground">
-                    Email <span className="text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    {...register('email')}
-                    placeholder="Enter email"
-                    className="border-border bg-background"
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email.message}</p>
-                  )}
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-foreground">
+                  Email <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...register('email')}
+                  placeholder="Enter email"
+                  className="border-border bg-background"
+                />
+                {errors.email && (
+                  <p className="text-sm text-destructive">{errors.email.message}</p>
+                )}
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-foreground">
-                    Phone Number <span className="text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Input
-                    id="phone"
-                    {...register('phone')}
-                    placeholder="Enter phone number"
-                    className="border-border bg-background"
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-foreground">
+                  Phone Number <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  id="phone"
+                  {...register('phone')}
+                  placeholder="Enter phone number"
+                  className="border-border bg-background"
+                />
+              </div>
 
                 <div className="space-y-2 sm:col-span-2">
                   <Label className="text-foreground">Interests</Label>
-                  <div className="space-y-2">
+              <div className="space-y-2">
                     <div className="flex gap-2">
                       <Input
                         value={tagInput}
@@ -278,43 +278,43 @@ export function RecordModal({
                     )}
                     {errors.interests && (
                       <p className="text-sm text-destructive">{errors.interests.message}</p>
-                    )}
+                )}
                   </div>
-                </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label className="text-foreground">Source</Label>
-                  <Select
-                    value={watchedSource}
+              <div className="space-y-2">
+                <Label className="text-foreground">Source</Label>
+                <Select
+                  value={watchedSource}
                     onValueChange={(value) => setValue('source', value, { shouldValidate: true })}
-                  >
-                    <SelectTrigger className="border-border bg-background">
-                      <SelectValue placeholder="Select a source" />
-                    </SelectTrigger>
+                >
+                  <SelectTrigger className="border-border bg-background">
+                    <SelectValue placeholder="Select a source" />
+                  </SelectTrigger>
                     <SelectContent className="bg-background border-border z-[200]">
                       {sources.map((source) => (
-                        <SelectItem key={source} value={source}>
-                          {source}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.source && (
-                    <p className="text-sm text-destructive">{errors.source.message}</p>
-                  )}
-                </div>
+                      <SelectItem key={source} value={source}>
+                        {source}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.source && (
+                  <p className="text-sm text-destructive">{errors.source.message}</p>
+                )}
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="remarks" className="text-foreground">
-                    Remarks <span className="text-muted-foreground">(optional)</span>
-                  </Label>
-                  <Textarea
-                    id="remarks"
-                    {...register('remarks')}
+              <div className="space-y-2">
+                <Label htmlFor="remarks" className="text-foreground">
+                  Remarks <span className="text-muted-foreground">(optional)</span>
+                </Label>
+                <Textarea
+                  id="remarks"
+                  {...register('remarks')}
                     placeholder="Add any notes..."
                     rows={1}
-                    className="border-border bg-background resize-none"
-                  />
+                  className="border-border bg-background resize-none"
+                />
                 </div>
               </div>
 

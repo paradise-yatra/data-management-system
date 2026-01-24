@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { Plus, Settings, Trash2, FileText, RefreshCw } from 'lucide-react';
-import { getCurrentISTDateTime } from '@/utils/dateUtils';
+import { Plus, Settings, Trash2, FileText, RefreshCw, ChevronDown, FileSpreadsheet } from 'lucide-react';
+import { getCurrentISTDateTime, formatDateTimeIST } from '@/utils/dateUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Header } from '@/components/dashboard/Header';
 import { StatsCards } from '@/components/dashboard/StatsCards';
@@ -14,7 +14,14 @@ import { RecordDetailsModal } from '@/components/dashboard/RecordDetailsModal';
 import { TrashModalWithConfirm } from '@/components/dashboard/TrashModal';
 import { LogsModal } from '@/components/dashboard/LogsModal';
 import { BulkAddModal } from '@/components/dashboard/BulkAddModal';
+import { ExcelImportModal } from '@/components/dashboard/ExcelImportModal';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { LeadRecord, FilterState, SOURCES } from '@/types/record';
 import { sourcesAPI, identitiesAPI, trashAPI } from '@/services/api';
 
@@ -44,6 +51,8 @@ const Index = () => {
   const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isBulkAddModalOpen, setIsBulkAddModalOpen] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [isExcelImportModalOpen, setIsExcelImportModalOpen] = useState(false);
 
   // Fetch sources from API on component mount
   useEffect(() => {
@@ -77,6 +86,7 @@ const Index = () => {
       try {
         const fetchedRecords = await identitiesAPI.getAll();
         setRecords(fetchedRecords);
+        setLastUpdated(getCurrentISTDateTime());
       } catch (error) {
         console.error('Failed to fetch records:', error);
         toast('Failed to load records from server.', {
@@ -137,8 +147,8 @@ const Index = () => {
         return false;
 
       // Interests filter
-      if (filters.interestsFilter !== 'all' && 
-          !record.interests.some((interest) => interest.toLowerCase().includes(filters.interestsFilter.toLowerCase())))
+      if (filters.interestsFilter !== 'all' &&
+        !record.interests.some((interest) => interest.toLowerCase().includes(filters.interestsFilter.toLowerCase())))
         return false;
 
       return true;
@@ -152,7 +162,7 @@ const Index = () => {
       if (selectionToastIdRef.current !== null) {
         toast.dismiss(selectionToastIdRef.current);
       }
-      
+
       // Show toast with delete button
       const toastId = toast(
         <div className="flex items-center justify-between gap-4">
@@ -165,10 +175,10 @@ const Index = () => {
             onClick={async () => {
               try {
                 // Get current records to delete (from all records, not just filtered)
-                const recordsToDelete = records.filter((r) => 
+                const recordsToDelete = records.filter((r) =>
                   selectedRecords.includes(r._id || r.id || '')
                 );
-                
+
                 // Delete from identities and add to trash for each record
                 const trashRecords: LeadRecord[] = [];
                 for (const record of recordsToDelete) {
@@ -179,13 +189,13 @@ const Index = () => {
                     trashRecords.push(trashRecord);
                   }
                 }
-                
+
                 // Update local state - use trash records with correct _id
                 setRecords((prev) => prev.filter((r) => !selectedRecords.includes(r._id || r.id || '')));
                 setDeletedRecords((prev) => [...trashRecords, ...prev]);
                 setSelectedRecords([]);
                 toast.dismiss(toastId);
-                
+
                 toast.error(`${recordsToDelete.length} record${recordsToDelete.length !== 1 ? 's' : ''} moved to trash`, {
                   style: {
                     background: 'hsl(0, 84%, 60%)',
@@ -276,10 +286,10 @@ const Index = () => {
       setIsModalOpen(false);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to save record';
-      
+
       // Check if it's a duplicate error
       const isDuplicateError = errorMessage.includes('already exists');
-      
+
       toast(errorMessage, {
         style: {
           background: isDuplicateError ? 'hsl(0, 84%, 60%)' : 'hsl(45, 93%, 47%)',
@@ -299,14 +309,14 @@ const Index = () => {
       try {
         // Delete from identities collection
         await identitiesAPI.delete(deleteRecord._id);
-        
+
         // Add to trash collection - this returns a new record with trash collection's _id
         const trashRecord = await trashAPI.add(deleteRecord);
-        
+
         // Update local state - use the trash record with the correct _id
         setRecords((prev) => prev.filter((r) => r._id !== deleteRecord._id));
         setDeletedRecords((prev) => [trashRecord, ...prev]);
-        
+
         toast.error('Record moved to trash', {
           style: {
             background: 'hsl(0, 84%, 60%)',
@@ -329,15 +339,15 @@ const Index = () => {
 
   const handleRestore = async (record: LeadRecord) => {
     if (!record._id) return;
-    
+
     try {
       // Restore from trash (moves back to identities collection)
       const restoredRecord = await trashAPI.restore(record._id);
-      
+
       // Update local state
       setDeletedRecords((prev) => prev.filter((r) => r._id !== record._id));
       setRecords((prev) => [restoredRecord, ...prev]);
-      
+
       toast('Record restored successfully', {
         style: {
           background: 'hsl(142, 76%, 36%)',
@@ -358,14 +368,14 @@ const Index = () => {
 
   const handlePermanentDelete = async (record: LeadRecord) => {
     if (!record._id) return;
-    
+
     try {
       // Permanently delete from trash collection
       await trashAPI.delete(record._id);
-      
+
       // Update local state
       setDeletedRecords((prev) => prev.filter((r) => r._id !== record._id));
-      
+
       toast.error('Record permanently deleted', {
         style: {
           background: 'hsl(0, 84%, 60%)',
@@ -388,10 +398,10 @@ const Index = () => {
     try {
       // Permanently delete all records from trash collection
       await trashAPI.empty();
-      
+
       const count = deletedRecords.length;
       setDeletedRecords([]);
-      
+
       toast.error(`All ${count} record${count !== 1 ? 's' : ''} permanently deleted`, {
         style: {
           background: 'hsl(0, 84%, 60%)',
@@ -419,8 +429,9 @@ const Index = () => {
         sourcesAPI.getAll(),
         isAdmin ? trashAPI.getAll() : Promise.resolve([]),
       ]);
-      
+
       setRecords(fetchedRecords);
+      setLastUpdated(getCurrentISTDateTime());
       if (fetchedSources.length > 0) {
         setSources(fetchedSources);
       }
@@ -445,9 +456,16 @@ const Index = () => {
       <Header />
       <main>
         <div className="mx-auto max-w-7xl px-6 pt-6">
-          <h2 className="text-2xl font-semibold text-foreground mb-2">
-            Identity Management System
-          </h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-2xl font-semibold text-foreground">
+              Identity Management System
+            </h2>
+            {lastUpdated && (
+              <p className="text-sm text-muted-foreground">
+                Last updated: {formatDateTimeIST(lastUpdated)}
+              </p>
+            )}
+          </div>
         </div>
         <StatsCards records={records} />
         <div className="mx-auto max-w-7xl px-6 pb-4 flex justify-end gap-3">
@@ -500,14 +518,27 @@ const Index = () => {
             <Plus className="h-4 w-4" />
             Add New Record
           </Button>
-          <Button
-            onClick={() => setIsBulkAddModalOpen(true)}
-            variant="outline"
-            className="gap-2 border-border"
-          >
-            <Plus className="h-4 w-4" />
-            Bulk Add
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className="gap-2 border-border"
+              >
+                Bulk Add
+                <ChevronDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setIsBulkAddModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Manual
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsExcelImportModalOpen(true)}>
+                <FileSpreadsheet className="h-4 w-4 mr-2" />
+                Excel Import
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <FilterBar filters={filters} onFiltersChange={setFilters} sources={sources} />
         <DataTable
@@ -590,11 +621,11 @@ const Index = () => {
         onSave={async (entries) => {
           try {
             const result = await identitiesAPI.createBulk(entries);
-            
+
             // Refresh records
             const fetchedRecords = await identitiesAPI.getAll();
             setRecords(fetchedRecords);
-            
+
             // Show success/partial success notification
             if (result.failed === 0) {
               toast(`Successfully added ${result.success} record${result.success !== 1 ? 's' : ''}`, {
@@ -612,7 +643,7 @@ const Index = () => {
                   border: 'none',
                 },
               });
-              
+
               // Show details of failed entries if any
               if (result.results.failed.length > 0) {
                 const failedDetails = result.results.failed
@@ -623,6 +654,55 @@ const Index = () => {
             }
           } catch (error) {
             toast(error instanceof Error ? error.message : 'Failed to save bulk entries', {
+              style: {
+                background: 'hsl(0, 84%, 60%)',
+                color: 'white',
+                border: 'none',
+              },
+            });
+            throw error;
+          }
+        }}
+      />
+      <ExcelImportModal
+        isOpen={isExcelImportModalOpen}
+        onClose={() => setIsExcelImportModalOpen(false)}
+        sources={sources}
+        onSave={async (entries) => {
+          try {
+            const result = await identitiesAPI.createBulk(entries);
+
+            // Refresh records
+            const fetchedRecords = await identitiesAPI.getAll();
+            setRecords(fetchedRecords);
+
+            // Show success/partial success notification
+            if (result.failed === 0) {
+              toast.success(`Successfully imported ${result.success} record${result.success !== 1 ? 's' : ''}`, {
+                style: {
+                  background: 'hsl(142, 76%, 36%)',
+                  color: 'white',
+                  border: 'none',
+                },
+              });
+            } else {
+              toast(`Imported ${result.success} of ${entries.length} records. ${result.failed} failed.`, {
+                style: {
+                  background: 'hsl(45, 93%, 47%)',
+                  color: 'white',
+                  border: 'none',
+                },
+              });
+
+              if (result.results.failed.length > 0) {
+                const failedDetails = result.results.failed
+                  .map((f) => `Row ${f.index}: ${f.error}`)
+                  .join('\n');
+                console.error('Failed entries:', failedDetails);
+              }
+            }
+          } catch (error) {
+            toast(error instanceof Error ? error.message : 'Failed to import records', {
               style: {
                 background: 'hsl(0, 84%, 60%)',
                 color: 'white',

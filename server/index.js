@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import sourcesRoutes from './routes/sources.js';
 import identitiesRoutes from './routes/identities.js';
@@ -15,6 +17,11 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Get directory paths
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
 
 // Middleware
 app.use(cors({
@@ -40,6 +47,21 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });
 
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  const distPath = path.join(rootDir, 'dist');
+  app.use(express.static(distPath));
+  
+  // Serve index.html for all non-API routes (SPA routing)
+  app.get('*', (req, res) => {
+    // Don't serve index.html for API routes
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'API route not found' });
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
@@ -49,5 +71,8 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`Serving static files from: ${path.join(rootDir, 'dist')}`);
+  }
 });
 
