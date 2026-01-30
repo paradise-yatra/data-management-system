@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { getRbacConnection } from '../config/db.js';
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -25,9 +26,19 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'manager', 'user'],
     default: 'user',
   },
+  roleId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Role',
+    default: null,
+  },
   isActive: {
     type: Boolean,
     default: true,
+  },
+  themePreference: {
+    type: String,
+    enum: ['light', 'dark', 'system'],
+    default: 'system',
   },
   createdAt: {
     type: Date,
@@ -74,7 +85,8 @@ userSchema.methods.toJSON = function () {
   return user;
 };
 
-const User = mongoose.model('User', userSchema, 'users');
+const conn = getRbacConnection();
+const User = conn.model('User', userSchema, 'users');
 
 export default User;
 

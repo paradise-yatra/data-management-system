@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import type { AccessLevel, PermissionsMap } from '@/types/rbac';
 
 export interface User {
   _id: string;
   email: string;
   name: string;
   role: 'admin' | 'manager' | 'user';
+  roleId?: string | null;
   isActive: boolean;
+  themePreference?: 'light' | 'dark' | 'system';
   createdAt: string;
   updatedAt: string;
 }
@@ -20,6 +23,12 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   isAdmin: boolean;
   isManager: boolean;
+  permissions: PermissionsMap;
+  canAccess: (resourceKey: string) => AccessLevel;
+  canView: (resourceKey: string) => boolean;
+  canEdit: (resourceKey: string) => boolean;
+  canDelete: (resourceKey: string) => boolean;
+  canManage: (resourceKey: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +37,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<PermissionsMap>({});
   const [token, setToken] = useState<string | null>(() => {
     return localStorage.getItem('authToken');
   });
@@ -36,6 +46,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!user && !!token;
   const isAdmin = user?.role === 'admin';
   const isManager = user?.role === 'manager' || user?.role === 'admin';
+
+  const canAccess = useCallback(
+    (resourceKey: string): AccessLevel => {
+      return permissions[resourceKey] ?? 'none';
+    },
+    [permissions]
+  );
+  const canView = useCallback(
+    (resourceKey: string) => (permissions[resourceKey] ?? 'none') !== 'none',
+    [permissions]
+  );
+  const canEdit = useCallback(
+    (resourceKey: string) => {
+      const level = permissions[resourceKey] ?? 'none';
+      return level === 'edit' || level === 'full';
+    },
+    [permissions]
+  );
+  const canDelete = useCallback(
+    (resourceKey: string) => (permissions[resourceKey] ?? 'none') === 'full',
+    [permissions]
+  );
+  const canManage = canDelete; // Alias for backward compatibility
 
   // Fetch current user
   const refreshUser = useCallback(async () => {
@@ -56,17 +89,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
+        setPermissions(data.permissions ?? {});
       } else {
-        // Token is invalid or expired
         localStorage.removeItem('authToken');
         setToken(null);
         setUser(null);
+        setPermissions({});
       }
     } catch (error) {
       console.error('Failed to fetch user:', error);
       localStorage.removeItem('authToken');
       setToken(null);
       setUser(null);
+      setPermissions({});
     } finally {
       setIsLoading(false);
     }
@@ -96,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const data = await response.json();
     setToken(data.token);
     setUser(data.user);
+    setPermissions(data.permissions ?? {});
     localStorage.setItem('authToken', data.token);
   };
 
@@ -115,6 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('authToken');
       setToken(null);
       setUser(null);
+      setPermissions({});
     }
   };
 
@@ -130,6 +167,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshUser,
         isAdmin,
         isManager,
+        permissions,
+        canAccess,
+        canView,
+        canEdit,
+        canDelete,
+        canManage,
       }}
     >
       {children}

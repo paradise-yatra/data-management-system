@@ -1,17 +1,27 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import type { AccessLevel } from '@/types/rbac';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  /** Legacy: require one of these roles when resourceKey is not used */
   requiredRoles?: ('admin' | 'manager' | 'user')[];
+  /** Resource key for permission check (e.g. manage_users, rbac_system) */
+  resourceKey?: string;
+  /** Minimum access level to view this route; none -> redirect to /access-denied */
+  requiredLevel?: 'view' | 'full';
 }
 
-export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, user } = useAuth();
+export function ProtectedRoute({
+  children,
+  requiredRoles,
+  resourceKey,
+  requiredLevel = 'view',
+}: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, user, canAccess } = useAuth();
   const location = useLocation();
 
-  // Show loading state while checking authentication
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -20,33 +30,23 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     );
   }
 
-  // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check role-based access
+  // Permission-based: check resourceKey
+  if (resourceKey) {
+    const access: AccessLevel = canAccess(resourceKey);
+    if (access === 'none') {
+      return <Navigate to="/access-denied" replace />;
+    }
+    return <>{children}</>;
+  }
+
+  // Legacy: role-based check
   if (requiredRoles && user && !requiredRoles.includes(user.role)) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-2">
-            Access Denied
-          </h1>
-          <p className="text-muted-foreground mb-4">
-            You don't have permission to view this page.
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Required role: {requiredRoles.join(' or ')}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Your role: {user.role}
-          </p>
-        </div>
-      </div>
-    );
+    return <Navigate to="/access-denied" replace />;
   }
 
   return <>{children}</>;
 }
-

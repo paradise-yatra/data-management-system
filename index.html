@@ -1,11 +1,30 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Initialize theme before React loads to prevent flash
+      (function() {
+        const storedTheme = localStorage.getItem('themePreference') || 'system';
+        let resolvedTheme = storedTheme;
+        
+        if (storedTheme === 'system') {
+          resolvedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        
+        if (resolvedTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
     <title>Dashboard | Identity Management System | Paradise Yatra</title>
     <meta name="description" content="Paradise Yatra Identity Management System - Manage and track customer identities, interests, and interactions in one centralized dashboard." />
     <meta name="author" content="Paradise Yatra" />
@@ -21,7 +40,11 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0a0a0a;color:#fafafa;font-family:system-ui,sans-serif;">
+        Loading…
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

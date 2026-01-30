@@ -1,13 +1,12 @@
 import { motion } from 'framer-motion';
-import { Search, X } from 'lucide-react';
+import { Search, X, ChevronDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/animate-ui/components/radix/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { FilterState } from '@/types/record';
 
@@ -61,54 +60,50 @@ export function FilterBar({ filters, onFiltersChange, sources }: FilterBarProps)
             />
           </div>
 
-          <Select
-            value={filters.emailFilter}
-            onValueChange={(value) =>
-              updateFilter('emailFilter', value as FilterState['emailFilter'])
-            }
-          >
-            <SelectTrigger className="w-[140px] border-border bg-background">
-              <SelectValue placeholder="Email" />
-            </SelectTrigger>
-            <SelectContent className="bg-background border-border">
-              <SelectItem value="all">All Emails</SelectItem>
-              <SelectItem value="has">Has Email</SelectItem>
-              <SelectItem value="none">No Email</SelectItem>
-            </SelectContent>
-          </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-[140px] justify-between border-border bg-background font-normal">
+                {filters.emailFilter === 'all' ? 'All Emails' : filters.emailFilter === 'has' ? 'Has Email' : 'No Email'}
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[140px] bg-background border-border">
+              <DropdownMenuItem onClick={() => updateFilter('emailFilter', 'all')}>All Emails</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => updateFilter('emailFilter', 'has')}>Has Email</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => updateFilter('emailFilter', 'none')}>No Email</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          <Select
-            value={filters.phoneFilter}
-            onValueChange={(value) =>
-              updateFilter('phoneFilter', value as FilterState['phoneFilter'])
-            }
-          >
-            <SelectTrigger className="w-[140px] border-border bg-background">
-              <SelectValue placeholder="Phone" />
-            </SelectTrigger>
-            <SelectContent className="bg-background border-border">
-              <SelectItem value="all">All Phones</SelectItem>
-              <SelectItem value="has">Has Phone</SelectItem>
-              <SelectItem value="none">No Phone</SelectItem>
-            </SelectContent>
-          </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-[140px] justify-between border-border bg-background font-normal">
+                {filters.phoneFilter === 'all' ? 'All Phones' : filters.phoneFilter === 'has' ? 'Has Phone' : 'No Phone'}
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[140px] bg-background border-border">
+              <DropdownMenuItem onClick={() => updateFilter('phoneFilter', 'all')}>All Phones</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => updateFilter('phoneFilter', 'has')}>Has Phone</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => updateFilter('phoneFilter', 'none')}>No Phone</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          <Select
-            value={filters.sourceFilter}
-            onValueChange={(value) => updateFilter('sourceFilter', value)}
-          >
-            <SelectTrigger className="w-[140px] border-border bg-background">
-              <SelectValue placeholder="Source" />
-            </SelectTrigger>
-            <SelectContent className="bg-background border-border">
-              <SelectItem value="all">All Sources</SelectItem>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-[140px] justify-between border-border bg-background font-normal">
+                <span className="truncate">{filters.sourceFilter === 'all' ? 'All Sources' : filters.sourceFilter}</span>
+                <ChevronDown className="h-4 w-4 opacity-50" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[140px] bg-background border-border max-h-[300px] overflow-y-auto">
+              <DropdownMenuItem onClick={() => updateFilter('sourceFilter', 'all')}>All Sources</DropdownMenuItem>
               {sources.map((source) => (
-                <SelectItem key={source} value={source}>
+                <DropdownMenuItem key={source} onClick={() => updateFilter('sourceFilter', source)}>
                   {source}
-                </SelectItem>
+                </DropdownMenuItem>
               ))}
-            </SelectContent>
-          </Select>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Input
             placeholder="Filter by interest..."

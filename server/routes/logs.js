@@ -25,9 +25,14 @@ router.get('/', async (req, res) => {
     // Build filter query
     const filter = {};
 
-    // Filter by action type
+    // Filter by action type (support comma-separated list)
     if (action) {
-      filter.action = action;
+      const actions = action.split(',');
+      if (actions.length > 1) {
+        filter.action = { $in: actions };
+      } else {
+        filter.action = action;
+      }
     }
 
     // Filter by user
@@ -55,6 +60,8 @@ router.get('/', async (req, res) => {
         { 'details.name': { $regex: search, $options: 'i' } },
         { 'details.email': { $regex: search, $options: 'i' } },
         { 'details.sourceName': { $regex: search, $options: 'i' } },
+        { ipAddress: { $regex: search, $options: 'i' } },
+        { deviceType: { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -124,6 +131,8 @@ router.get('/actions', async (req, res) => {
       { value: 'deactivate_user', label: 'Deactivated User' },
       { value: 'change_user_password', label: 'Changed Password' },
       { value: 'delete_user', label: 'Deleted User' },
+      { value: 'user_login', label: 'User Login' },
+      { value: 'user_logout', label: 'User Logout' },
     ];
     res.json(actions);
   } catch (error) {
@@ -188,6 +197,10 @@ function getFormattedDetails(action, details) {
       return `Changed password for: ${details.email || 'Unknown'}`;
     case 'delete_user':
       return `Deleted user: ${details.email || 'Unknown'}${details.name ? ` (${details.name})` : ''}`;
+    case 'user_login':
+      return `Logged in from ${details.deviceType || 'unknown device'}`;
+    case 'user_logout':
+      return `Logged out from ${details.deviceType || 'unknown device'}`;
     default:
       return JSON.stringify(details);
   }

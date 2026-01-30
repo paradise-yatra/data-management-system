@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Plus Jakarta Sans', 'sans-serif'],
+        display: ['Inter', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -60,9 +61,17 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "background-light": "#f5f6f8",
+        "background-dark": "#101622",
+        "card-dark": "#1b1f27",
+        "border-dark": "#2d3340",
+        "text-secondary": "#9ca6ba",
       },
       borderRadius: {
-        lg: "var(--radius)",
+        DEFAULT: "0.25rem",
+        lg: "0.5rem",
+        xl: "0.75rem",
+        full: "9999px",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },

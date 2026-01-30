@@ -1,16 +1,16 @@
 import express from 'express';
 import User from '../models/User.js';
-import { authenticateToken, authorizeRoles } from '../middleware/auth.js';
+import Role from '../models/Role.js';
+import { authenticateToken } from '../middleware/auth.js';
+import { requirePermission } from '../middleware/rbac.js';
 import { createLog } from '../utils/logger.js';
 
 const router = express.Router();
 
-// All routes require authentication and admin role
 router.use(authenticateToken);
-router.use(authorizeRoles('admin'));
 
-// GET /api/users - List all users
-router.get('/', async (req, res) => {
+// GET /api/users - List all users (manage_users view)
+router.get('/', requirePermission('manage_users', 'view'), async (req, res) => {
   try {
     const users = await User.find().sort({ createdAt: -1 });
     res.json(users);
@@ -20,8 +20,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/users/:id - Get a single user
-router.get('/:id', async (req, res) => {
+// GET /api/users/:id - Get a single user (manage_users view)
+router.get('/:id', requirePermission('manage_users', 'view'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) {
@@ -34,10 +34,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST /api/users - Create a new user
-router.post('/', async (req, res) => {
+// POST /api/users - Create a new user (manage_users full)
+router.post('/', requirePermission('manage_users', 'full'), async (req, res) => {
   try {
-    const { email, password, name, role } = req.body;
+    const { email, password, name, role, roleId } = req.body;
 
     // Validate input
     if (!email || !password || !name) {
@@ -54,21 +54,27 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'User with this email already exists' });
     }
 
-    // Validate role
-    const validRoles = ['admin', 'manager', 'user'];
-    const userRole = role && validRoles.includes(role) ? role : 'user';
+    // Resolve roleId and legacy role
+    let resolvedRoleId = roleId || null;
+    let legacyRole = role && ['admin', 'manager', 'user'].includes(role) ? role : 'user';
+    if (roleId) {
+      const roleDoc = await Role.findById(roleId);
+      if (roleDoc) {
+        const nameToLegacy = { Admin: 'admin', Manager: 'manager', User: 'user' };
+        legacyRole = nameToLegacy[roleDoc.name] ?? legacyRole;
+      }
+    }
 
-    // Create new user
     const user = new User({
       email: email.toLowerCase(),
       password,
       name: name.trim(),
-      role: userRole,
+      role: legacyRole,
+      roleId: resolvedRoleId,
     });
 
     await user.save();
     
-    // Log the action
     await createLog('create_user', req, {
       email: user.email,
       name: user.name,
@@ -89,28 +95,24 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT /api/users/:id - Update a user
-router.put('/:id', async (req, res) => {
+// PUT /api/users/:id - Update a user (manage_users full)
+router.put('/:id', requirePermission('manage_users', 'full'), async (req, res) => {
   try {
-    const { email, name, role, isActive, password } = req.body;
+    const { email, name, role, roleId, isActive, password } = req.body;
     const userId = req.params.id;
 
-    // Find user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Store original values for logging
     const originalIsActive = user.isActive;
     const originalEmail = user.email;
 
-    // Prevent admin from deactivating themselves
     if (req.user._id.toString() === userId && isActive === false) {
       return res.status(400).json({ error: 'You cannot deactivate your own account' });
     }
 
-    // Check if email is being changed and if it's already in use
     if (email && email.toLowerCase() !== user.email) {
       const existingUser = await User.findOne({ email: email.toLowerCase() });
       if (existingUser) {
@@ -119,12 +121,20 @@ router.put('/:id', async (req, res) => {
       user.email = email.toLowerCase();
     }
 
-    // Track if password is being changed
     const passwordChanged = password && password.length >= 6;
 
-    // Update fields
     if (name) user.name = name.trim();
     if (role && ['admin', 'manager', 'user'].includes(role)) user.role = role;
+    if (typeof roleId !== 'undefined') {
+      user.roleId = roleId || null;
+      if (roleId) {
+        const roleDoc = await Role.findById(roleId);
+        if (roleDoc) {
+          const nameToLegacy = { Admin: 'admin', Manager: 'manager', User: 'user' };
+          user.role = nameToLegacy[roleDoc.name] ?? user.role;
+        }
+      }
+    }
     if (typeof isActive === 'boolean') user.isActive = isActive;
     if (passwordChanged) user.password = password;
 
@@ -163,8 +173,8 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/users/:id - Delete a user
-router.delete('/:id', async (req, res) => {
+// DELETE /api/users/:id - Delete a user (manage_users full)
+router.delete('/:id', requirePermission('manage_users', 'full'), async (req, res) => {
   try {
     const userId = req.params.id;
 
@@ -191,33 +201,39 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// PUT /api/users/:id/role - Change user role
-router.put('/:id/role', async (req, res) => {
+// PUT /api/users/:id/role - Change user role (manage_users full); accepts role or roleId
+router.put('/:id/role', requirePermission('manage_users', 'full'), async (req, res) => {
   try {
-    const { role } = req.body;
+    const { role, roleId } = req.body;
     const userId = req.params.id;
 
-    // Validate role
-    const validRoles = ['admin', 'manager', 'user'];
-    if (!role || !validRoles.includes(role)) {
-      return res.status(400).json({ error: 'Invalid role. Must be admin, manager, or user' });
-    }
-
-    // Prevent admin from changing their own role
     if (req.user._id.toString() === userId) {
       return res.status(400).json({ error: 'You cannot change your own role' });
     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { role },
-      { new: true }
-    );
-
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    if (roleId) {
+      const roleDoc = await Role.findById(roleId);
+      if (!roleDoc) {
+        return res.status(400).json({ error: 'Invalid role ID' });
+      }
+      user.roleId = roleId;
+      const nameToLegacy = { Admin: 'admin', Manager: 'manager', User: 'user' };
+      user.role = nameToLegacy[roleDoc.name] ?? user.role;
+    } else if (role && ['admin', 'manager', 'user'].includes(role)) {
+      user.role = role;
+      const legacyToName = { admin: 'Admin', manager: 'Manager', user: 'User' };
+      const roleDoc = await Role.findOne({ name: legacyToName[role] });
+      user.roleId = roleDoc ? roleDoc._id : null;
+    } else {
+      return res.status(400).json({ error: 'Invalid role. Provide role (admin/manager/user) or roleId' });
+    }
+
+    await user.save();
     res.json(user);
   } catch (error) {
     console.error('Change role error:', error);

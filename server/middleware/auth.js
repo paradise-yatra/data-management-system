@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { resolveUserPermissions } from './rbac.js';
 
 // Get JWT secret from environment or use default (in production, always use env variable)
 const JWT_SECRET = process.env.JWT_SECRET || 'paradise-yatra-identity-management-secret-key';
@@ -10,7 +11,7 @@ export const generateToken = (userId) => {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
 };
 
-// Middleware to authenticate JWT token
+// Middleware to authenticate JWT token and attach permissions
 export const authenticateToken = async (req, res, next) => {
   try {
     // Get token from header, cookie, or query parameter
@@ -35,8 +36,8 @@ export const authenticateToken = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // Find user
-    const user = await User.findById(decoded.userId).select('-password');
+    // Find user (roleId is on same RBAC connection)
+    const user = await User.findById(decoded.userId).select('-password').lean();
     if (!user) {
       return res.status(401).json({ error: 'Invalid token. User not found.' });
     }
@@ -46,8 +47,8 @@ export const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ error: 'Account is deactivated. Contact administrator.' });
     }
 
-    // Attach user to request
-    req.user = user;
+    const permissions = await resolveUserPermissions(user);
+    req.user = { ...user, permissions };
     next();
   } catch (error) {
     if (error.name === 'JsonWebTokenError') {

@@ -1,718 +1,290 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
-import { Plus, Settings, Trash2, FileText, RefreshCw, ChevronDown, FileSpreadsheet } from 'lucide-react';
-import { getCurrentISTDateTime, formatDateTimeIST } from '@/utils/dateUtils';
-import { useAuth } from '@/contexts/AuthContext';
-import { Header } from '@/components/dashboard/Header';
-import { StatsCards } from '@/components/dashboard/StatsCards';
-import { FilterBar } from '@/components/dashboard/FilterBar';
-import { DataTable } from '@/components/dashboard/DataTable';
-import { RecordModal } from '@/components/dashboard/RecordModal';
-import { DeleteConfirmDialog } from '@/components/dashboard/DeleteConfirmDialog';
-import { SourceManagementModal } from '@/components/dashboard/SourceManagementModal';
-import { RecordDetailsModal } from '@/components/dashboard/RecordDetailsModal';
-import { TrashModalWithConfirm } from '@/components/dashboard/TrashModal';
-import { LogsModal } from '@/components/dashboard/LogsModal';
-import { BulkAddModal } from '@/components/dashboard/BulkAddModal';
-import { ExcelImportModal } from '@/components/dashboard/ExcelImportModal';
-import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { LeadRecord, FilterState, SOURCES } from '@/types/record';
-import { sourcesAPI, identitiesAPI, trashAPI } from '@/services/api';
+  Home,
+  Bell,
+  Files,
+  Users,
+  BarChart3,
+  CreditCard,
+  Settings,
+  LogOut,
+  Search,
+  Plus,
+  CheckCircle2,
+  FolderOpen,
+  AlertCircle,
+  Terminal,
+  ArrowRight,
+  FileText,
+  Ticket,
+  Calendar,
+  Megaphone,
+  Menu,
+  Database,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { AnimatePresence } from 'framer-motion';
+import { Sidebar } from '@/components/Sidebar';
+
+const pathToResourceKey: Record<string, string> = {
+  '/human-resource-management': 'hr_portal',
+  '/data-management': 'data_management',
+};
 
 const Index = () => {
-  const { isAdmin } = useAuth();
-  const [records, setRecords] = useState<LeadRecord[]>([]);
-  const [filters, setFilters] = useState<FilterState>({
-    search: '',
-    emailFilter: 'all',
-    phoneFilter: 'all',
-    sourceFilter: 'all',
-    interestsFilter: 'all',
-  });
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<LeadRecord | null>(null);
-  const [deleteRecord, setDeleteRecord] = useState<LeadRecord | null>(null);
-  const [isSourceModalOpen, setIsSourceModalOpen] = useState(false);
-  const [sources, setSources] = useState<string[]>([...SOURCES]);
-  const [viewingRecord, setViewingRecord] = useState<LeadRecord | null>(null);
-  const [isLoadingSources, setIsLoadingSources] = useState(true);
-  const [isLoadingRecords, setIsLoadingRecords] = useState(true);
-  const [isTrashModalOpen, setIsTrashModalOpen] = useState(false);
-  const [deletedRecords, setDeletedRecords] = useState<LeadRecord[]>([]);
-  const [isLoadingTrash, setIsLoadingTrash] = useState(true);
-  const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
-  const selectionToastIdRef = useRef<string | number | null>(null);
-  const [isLogsModalOpen, setIsLogsModalOpen] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isBulkAddModalOpen, setIsBulkAddModalOpen] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [isExcelImportModalOpen, setIsExcelImportModalOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user, canView } = useAuth();
+  const [greeting, setGreeting] = useState('');
 
-  // Fetch sources from API on component mount
-  useEffect(() => {
-    const fetchSources = async () => {
-      try {
-        const fetchedSources = await sourcesAPI.getAll();
-        if (fetchedSources.length > 0) {
-          setSources(fetchedSources);
-        }
-      } catch (error) {
-        console.error('Failed to fetch sources:', error);
-        // Keep default sources if API fails
-        toast('Failed to load sources from server. Using default sources.', {
-          style: {
-            background: 'hsl(45, 93%, 47%)',
-            color: 'white',
-            border: 'none',
-          },
-        });
-      } finally {
-        setIsLoadingSources(false);
-      }
-    };
-
-    fetchSources();
-  }, []);
-
-  // Fetch identities from API on component mount
-  useEffect(() => {
-    const fetchRecords = async () => {
-      try {
-        const fetchedRecords = await identitiesAPI.getAll();
-        setRecords(fetchedRecords);
-        setLastUpdated(getCurrentISTDateTime());
-      } catch (error) {
-        console.error('Failed to fetch records:', error);
-        toast('Failed to load records from server.', {
-          style: {
-            background: 'hsl(45, 93%, 47%)',
-            color: 'white',
-            border: 'none',
-          },
-        });
-      } finally {
-        setIsLoadingRecords(false);
-      }
-    };
-
-    const fetchTrash = async () => {
-      // Only fetch trash for admins
-      if (!isAdmin) {
-        setIsLoadingTrash(false);
-        return;
-      }
-      try {
-        const fetchedTrash = await trashAPI.getAll();
-        setDeletedRecords(fetchedTrash);
-      } catch (error) {
-        console.error('Error fetching trash:', error);
-      } finally {
-        setIsLoadingTrash(false);
-      }
-    };
-
-    fetchRecords();
-    fetchTrash();
-  }, [isAdmin]);
-
-  const filteredRecords = useMemo(() => {
-    return records.filter((record) => {
-      // Search filter
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        const matchesSearch =
-          record.name.toLowerCase().includes(searchLower) ||
-          record.email.toLowerCase().includes(searchLower) ||
-          record.phone.toLowerCase().includes(searchLower) ||
-          record.interests.some((interest) => interest.toLowerCase().includes(searchLower));
-        if (!matchesSearch) return false;
-      }
-
-      // Email filter
-      if (filters.emailFilter === 'has' && !record.email) return false;
-      if (filters.emailFilter === 'none' && record.email) return false;
-
-      // Phone filter
-      if (filters.phoneFilter === 'has' && !record.phone) return false;
-      if (filters.phoneFilter === 'none' && record.phone) return false;
-
-      // Source filter
-      if (filters.sourceFilter !== 'all' && record.source !== filters.sourceFilter)
-        return false;
-
-      // Interests filter
-      if (filters.interestsFilter !== 'all' &&
-        !record.interests.some((interest) => interest.toLowerCase().includes(filters.interestsFilter.toLowerCase())))
-        return false;
-
-      return true;
-    });
-  }, [records, filters]);
-
-  // Show/hide selection toast notification
-  useEffect(() => {
-    if (selectedRecords.length > 0) {
-      // Dismiss previous toast if exists
-      if (selectionToastIdRef.current !== null) {
-        toast.dismiss(selectionToastIdRef.current);
-      }
-
-      // Show toast with delete button
-      const toastId = toast(
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-sm font-medium">
-            {selectedRecords.length} record{selectedRecords.length !== 1 ? 's' : ''} selected
-          </span>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={async () => {
-              try {
-                // Get current records to delete (from all records, not just filtered)
-                const recordsToDelete = records.filter((r) =>
-                  selectedRecords.includes(r._id || r.id || '')
-                );
-
-                // Delete from identities and add to trash for each record
-                const trashRecords: LeadRecord[] = [];
-                for (const record of recordsToDelete) {
-                  if (record._id) {
-                    await identitiesAPI.delete(record._id);
-                    // Get the trash record with the correct _id
-                    const trashRecord = await trashAPI.add(record);
-                    trashRecords.push(trashRecord);
-                  }
-                }
-
-                // Update local state - use trash records with correct _id
-                setRecords((prev) => prev.filter((r) => !selectedRecords.includes(r._id || r.id || '')));
-                setDeletedRecords((prev) => [...trashRecords, ...prev]);
-                setSelectedRecords([]);
-                toast.dismiss(toastId);
-
-                toast.error(`${recordsToDelete.length} record${recordsToDelete.length !== 1 ? 's' : ''} moved to trash`, {
-                  style: {
-                    background: 'hsl(0, 84%, 60%)',
-                    color: 'white',
-                    border: 'none',
-                  },
-                });
-              } catch (error) {
-                toast(error instanceof Error ? error.message : 'Failed to delete selected records', {
-                  style: {
-                    background: 'hsl(45, 93%, 47%)',
-                    color: 'white',
-                    border: 'none',
-                  },
-                });
-              }
-            }}
-            className="gap-2 h-8"
-          >
-            <Trash2 className="h-3 w-3" />
-            Delete
-          </Button>
-        </div>,
-        {
-          duration: Infinity, // Keep it open until dismissed
-          style: {
-            background: 'hsl(45, 93%, 47%)',
-            color: 'white',
-            border: 'none',
-          },
-        }
-      );
-      selectionToastIdRef.current = toastId;
+  useState(() => {
+    const hour = new Date().getHours();
+    if (hour >= 4 && hour < 12) {
+      setGreeting('Good Morning');
+    } else if (hour >= 12 && hour < 16) {
+      setGreeting('Good Afternoon');
     } else {
-      // Dismiss toast when nothing is selected
-      if (selectionToastIdRef.current !== null) {
-        toast.dismiss(selectionToastIdRef.current);
-        selectionToastIdRef.current = null;
-      }
+      setGreeting('Good Evening');
     }
-  }, [selectedRecords.length, records]);
+  });
 
-  const handleAddNew = () => {
-    setEditingRecord(null);
-    setIsModalOpen(true);
-  };
+  const allModules = [
+    {
+      title: 'Human Resource Management',
+      description: 'Manage leave & payroll',
+      icon: <Users className="h-6 w-6" />,
+      path: '/human-resource-management',
+      comingSoon: false,
+    },
+    {
+      title: 'Data Management',
+      description: 'Client relationships & Sales',
+      icon: <Database className="h-6 w-6" />,
+      path: '/data-management',
+      comingSoon: false,
+    },
+    {
+      title: 'Finance',
+      description: 'Invoices & Budgeting',
+      icon: <CreditCard className="h-6 w-6" />,
+      path: '/finance',
+      comingSoon: true,
+    },
+    {
+      title: 'IT Support',
+      description: 'Open tickets: 2',
+      icon: <Terminal className="h-6 w-6" />,
+      path: '/support',
+      comingSoon: true,
+    },
+  ];
 
-  const handleEdit = (record: LeadRecord) => {
-    setEditingRecord(record);
-    setIsModalOpen(true);
-  };
+  const modules = allModules.filter((m) => {
+    if (m.comingSoon) return true;
+    const key = pathToResourceKey[m.path];
+    return !key || canView(key);
+  });
 
-  const handleSave = async (data: Omit<LeadRecord, '_id' | 'id' | 'uniqueId' | 'dateAdded'>) => {
-    try {
-      const recordData = {
-        ...data,
-        dateAdded: editingRecord?.dateAdded || getCurrentISTDateTime(),
-      };
-
-      if (editingRecord && editingRecord._id) {
-        // Update existing record
-        const updatedRecord = await identitiesAPI.update(editingRecord._id, recordData);
-        setRecords((prev) =>
-          prev.map((r) =>
-            r._id === editingRecord._id ? updatedRecord : r
-          )
-        );
-        toast('Record updated successfully', {
-          style: {
-            background: 'hsl(45, 93%, 47%)',
-            color: 'white',
-            border: 'none',
-          },
-        });
-      } else {
-        // Add new record
-        const newRecord = await identitiesAPI.create(recordData);
-        setRecords((prev) => [newRecord, ...prev]);
-        toast.success('Record added successfully', {
-          style: {
-            background: 'hsl(142, 76%, 36%)',
-            color: 'white',
-            border: 'none',
-          },
-        });
-      }
-      setEditingRecord(null);
-      setIsModalOpen(false);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save record';
-
-      // Check if it's a duplicate error
-      const isDuplicateError = errorMessage.includes('already exists');
-
-      toast(errorMessage, {
-        style: {
-          background: isDuplicateError ? 'hsl(0, 84%, 60%)' : 'hsl(45, 93%, 47%)',
-          color: 'white',
-          border: 'none',
-        },
-      });
-    }
-  };
-
-  const handleDeleteClick = (record: LeadRecord) => {
-    setDeleteRecord(record);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (deleteRecord && deleteRecord._id) {
-      try {
-        // Delete from identities collection
-        await identitiesAPI.delete(deleteRecord._id);
-
-        // Add to trash collection - this returns a new record with trash collection's _id
-        const trashRecord = await trashAPI.add(deleteRecord);
-
-        // Update local state - use the trash record with the correct _id
-        setRecords((prev) => prev.filter((r) => r._id !== deleteRecord._id));
-        setDeletedRecords((prev) => [trashRecord, ...prev]);
-
-        toast.error('Record moved to trash', {
-          style: {
-            background: 'hsl(0, 84%, 60%)',
-            color: 'white',
-            border: 'none',
-          },
-        });
-        setDeleteRecord(null);
-      } catch (error) {
-        toast(error instanceof Error ? error.message : 'Failed to delete record', {
-          style: {
-            background: 'hsl(45, 93%, 47%)',
-            color: 'white',
-            border: 'none',
-          },
-        });
-      }
-    }
-  };
-
-  const handleRestore = async (record: LeadRecord) => {
-    if (!record._id) return;
-
-    try {
-      // Restore from trash (moves back to identities collection)
-      const restoredRecord = await trashAPI.restore(record._id);
-
-      // Update local state
-      setDeletedRecords((prev) => prev.filter((r) => r._id !== record._id));
-      setRecords((prev) => [restoredRecord, ...prev]);
-
-      toast('Record restored successfully', {
-        style: {
-          background: 'hsl(142, 76%, 36%)',
-          color: 'white',
-          border: 'none',
-        },
-      });
-    } catch (error) {
-      toast(error instanceof Error ? error.message : 'Failed to restore record', {
-        style: {
-          background: 'hsl(45, 93%, 47%)',
-          color: 'white',
-          border: 'none',
-        },
-      });
-    }
-  };
-
-  const handlePermanentDelete = async (record: LeadRecord) => {
-    if (!record._id) return;
-
-    try {
-      // Permanently delete from trash collection
-      await trashAPI.delete(record._id);
-
-      // Update local state
-      setDeletedRecords((prev) => prev.filter((r) => r._id !== record._id));
-
-      toast.error('Record permanently deleted', {
-        style: {
-          background: 'hsl(0, 84%, 60%)',
-          color: 'white',
-          border: 'none',
-        },
-      });
-    } catch (error) {
-      toast(error instanceof Error ? error.message : 'Failed to permanently delete record', {
-        style: {
-          background: 'hsl(45, 93%, 47%)',
-          color: 'white',
-          border: 'none',
-        },
-      });
-    }
-  };
-
-  const handleEmptyTrash = async () => {
-    try {
-      // Permanently delete all records from trash collection
-      await trashAPI.empty();
-
-      const count = deletedRecords.length;
-      setDeletedRecords([]);
-
-      toast.error(`All ${count} record${count !== 1 ? 's' : ''} permanently deleted`, {
-        style: {
-          background: 'hsl(0, 84%, 60%)',
-          color: 'white',
-          border: 'none',
-        },
-      });
-    } catch (error) {
-      toast(error instanceof Error ? error.message : 'Failed to empty trash', {
-        style: {
-          background: 'hsl(45, 93%, 47%)',
-          color: 'white',
-          border: 'none',
-        },
-      });
-    }
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      // Fetch all data
-      const [fetchedRecords, fetchedSources, fetchedTrash] = await Promise.all([
-        identitiesAPI.getAll(),
-        sourcesAPI.getAll(),
-        isAdmin ? trashAPI.getAll() : Promise.resolve([]),
-      ]);
-
-      setRecords(fetchedRecords);
-      setLastUpdated(getCurrentISTDateTime());
-      if (fetchedSources.length > 0) {
-        setSources(fetchedSources);
-      }
-      if (isAdmin) {
-        setDeletedRecords(fetchedTrash);
-      }
-    } catch (error) {
-      toast('Failed to refresh data', {
-        style: {
-          background: 'hsl(45, 93%, 47%)',
-          color: 'white',
-          border: 'none',
-        },
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+  const recentActivity = [
+    {
+      title: 'Q3 Financial Report.pdf',
+      subtitle: 'Shared by Sarah Jenkins',
+      time: '2m ago',
+      icon: <FileText className="h-5 w-5" />,
+      iconBg: 'bg-muted',
+      iconColor: 'text-foreground',
+    },
+    {
+      title: 'Ticket #4029 Updated',
+      subtitle: 'Status changed to In Progress',
+      time: '1h ago',
+      icon: <Ticket className="h-5 w-5" />,
+      iconBg: 'bg-primary/10',
+      iconColor: 'text-primary',
+    },
+    {
+      title: 'Weekly Standup',
+      subtitle: 'Meeting scheduled for tomorrow',
+      time: '3h ago',
+      icon: <Calendar className="h-5 w-5" />,
+      iconBg: 'bg-muted',
+      iconColor: 'text-foreground',
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main>
-        <div className="mx-auto max-w-7xl px-6 pt-6">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-semibold text-foreground">
-              Identity Management System
-            </h2>
-            {lastUpdated && (
-              <p className="text-sm text-muted-foreground">
-                Last updated: {formatDateTimeIST(lastUpdated)}
-              </p>
-            )}
+    <div className="flex h-screen w-full flex-row overflow-hidden bg-background text-foreground font-sans antialiased selection:bg-primary/30 selection:text-primary-foreground">
+      <Sidebar />
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col h-full relative overflow-y-auto bg-background">
+        {/* Mobile Header */}
+        <div className="lg:hidden flex items-center justify-between p-4 border-b border-border bg-card">
+          <div className="flex items-center gap-3">
+            <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-8 bg-muted flex items-center justify-center">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
+            <span className="font-bold text-foreground">Paradise Yatra</span>
+          </div>
+          <button className="text-foreground">
+            <Menu className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Scrollable Content Container */}
+        <div className="flex-1 w-full max-w-7xl mx-auto p-4 md:p-8 flex flex-col gap-8">
+          {/* Top Section: Search & Actions */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="w-full md:max-w-md">
+              <div className="flex w-full items-stretch rounded-lg h-12 border border-border bg-card focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+                <div className="text-muted-foreground flex items-center justify-center pl-4">
+                  <Search className="h-5 w-5" />
+                </div>
+                <input
+                  className="flex w-full min-w-0 flex-1 rounded-lg text-foreground focus:outline-0 border-none bg-transparent px-4 pl-2 text-sm font-normal leading-normal placeholder:text-muted-foreground"
+                  placeholder="Search employees, documents, or tickets..."
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div
+                className="h-10 px-4 flex items-center justify-center rounded-lg bg-[#e12b27] shadow-lg shadow-[#e12b27]/20 cursor-pointer hover:opacity-90 transition-opacity"
+                onClick={() => navigate('/voya-trail')}
+              >
+                <img src="/Brand/Header Logo White.png" alt="Paradise Yatra Logo" className="h-7 w-auto object-contain" />
+              </div>
+              <Button className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-lg shadow-primary/20 border-none">
+                <Plus className="h-5 w-5" />
+                <span>Create Ticket</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Hero Section: Greeting */}
+          <div className="flex flex-col gap-1">
+            <h1 className="text-foreground text-3xl md:text-4xl font-black leading-tight tracking-tight">
+              {greeting}, {user?.name?.split(' ')[0] || 'Alex'}
+            </h1>
+            <p className="text-muted-foreground text-base font-normal">
+              {new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).format(new Date())} • Dashboard Overview
+            </p>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card hover:border-primary/50 transition-colors group">
+              <div className="flex justify-between items-start">
+                <p className="text-muted-foreground text-sm font-medium uppercase tracking-wide">System Status</p>
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
+              </div>
+              <p className="text-foreground tracking-tight text-2xl font-bold leading-tight group-hover:text-primary transition-colors">Online</p>
+              <p className="text-xs text-muted-foreground mt-1">All servers operational</p>
+            </div>
+            <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card hover:border-primary/50 transition-colors group">
+              <div className="flex justify-between items-start">
+                <p className="text-muted-foreground text-sm font-medium uppercase tracking-wide">Active Projects</p>
+                <FolderOpen className="h-5 w-5 text-primary/70" />
+              </div>
+              <p className="text-foreground tracking-tight text-2xl font-bold leading-tight group-hover:text-primary transition-colors">12</p>
+              <p className="text-xs text-muted-foreground mt-1">2 due this week</p>
+            </div>
+            <div className="flex flex-col gap-2 rounded-xl p-6 border border-border bg-card hover:border-primary/50 transition-colors group">
+              <div className="flex justify-between items-start">
+                <p className="text-muted-foreground text-sm font-medium uppercase tracking-wide">Pending Tasks</p>
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <p className="text-foreground tracking-tight text-2xl font-bold leading-tight group-hover:text-primary transition-colors">3</p>
+              <p className="text-xs text-muted-foreground mt-1">Action required</p>
+            </div>
+          </div>
+
+          {/* Main Module Grid */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-foreground text-xl font-bold">Quick Access Modules</h2>
+              <a className="text-primary text-sm font-medium hover:underline" href="#">View All</a>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {modules.map((module) => (
+                <div
+                  key={module.title}
+                  className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5 hover:bg-accent transition-all cursor-pointer group"
+                  onClick={() => !module.comingSoon && navigate(module.path)}
+                >
+                  <div className="size-12 rounded-lg bg-muted flex items-center justify-center text-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    {module.icon}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-foreground text-lg font-bold leading-tight">{module.title}</h3>
+                      {module.comingSoon && (
+                        <Badge variant="outline" className="text-[10px] py-0 px-1 border-border text-muted-foreground">Soon</Badge>
+                      )}
+                    </div>
+                    <p className="text-muted-foreground text-sm font-normal leading-normal">{module.description}</p>
+                  </div>
+                  <div className="mt-auto pt-2 flex items-center text-muted-foreground text-sm font-medium group-hover:text-foreground transition-colors">
+                    <span>{module.comingSoon ? 'Under Development' : 'Access'}</span>
+                    {!module.comingSoon && <ArrowRight className="h-4 w-4 ml-1" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Activity Feed */}
+          <div className="flex flex-col lg:flex-row gap-6 pb-8">
+            <div className="flex-1 rounded-xl border border-border bg-card p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-foreground text-lg font-bold">Recent Activity</h3>
+                <button className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Settings className="h-5 w-5" />
+                </button>
+              </div>
+              <div className="flex flex-col gap-4">
+                {recentActivity.map((activity, i) => (
+                  <div key={i} className="flex gap-4 items-start">
+                    <div className={cn(activity.iconBg, "p-2 rounded-full", activity.iconColor)}>
+                      {activity.icon}
+                    </div>
+                    <div className={cn("flex-1", i !== recentActivity.length - 1 ? 'border-b border-border/50 pb-4' : '')}>
+                      <p className="text-foreground text-sm font-medium">{activity.title}</p>
+                      <p className="text-muted-foreground text-xs">{activity.subtitle}</p>
+                    </div>
+                    <span className="text-muted-foreground text-xs whitespace-nowrap">{activity.time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Side Widget */}
+            <div className="w-full lg:w-1/3 rounded-xl border border-border bg-gradient-to-br from-primary/10 to-card p-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <Megaphone className="h-24 w-24 text-foreground" />
+              </div>
+              <h3 className="text-foreground text-lg font-bold mb-2 relative z-10">Company Townhall</h3>
+              <p className="text-muted-foreground text-sm mb-6 relative z-10">Don't forget to join the quarterly all-hands meeting this Friday at 10:00 AM PST.</p>
+              <div className="flex -space-x-2 overflow-hidden mb-6 relative z-10">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="inline-block h-8 w-8 rounded-full ring-2 ring-card bg-muted flex items-center justify-center text-[10px] text-muted-foreground">
+                    U{i}
+                  </div>
+                ))}
+                <div className="flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-card bg-accent text-xs font-medium text-foreground">+42</div>
+              </div>
+              <Button className="w-full bg-foreground text-background py-2 rounded-lg text-sm font-semibold hover:bg-foreground/90 transition-colors relative z-10 border-none">
+                View Details
+              </Button>
+            </div>
           </div>
         </div>
-        <StatsCards records={records} />
-        <div className="mx-auto max-w-7xl px-6 pb-4 flex justify-end gap-3">
-          <Button
-            onClick={handleRefresh}
-            variant="outline"
-            disabled={isRefreshing}
-            className="gap-2 border-border"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          {isAdmin && (
-            <>
-              <Button
-                onClick={() => setIsTrashModalOpen(true)}
-                variant="outline"
-                className="gap-2 border-border"
-              >
-                <Trash2 className="h-4 w-4" />
-                Trash
-                {deletedRecords.length > 0 && (
-                  <span className="ml-1 rounded-full bg-destructive px-2 py-0.5 text-xs font-medium text-destructive-foreground">
-                    {deletedRecords.length}
-                  </span>
-                )}
-              </Button>
-              <Button
-                onClick={() => setIsLogsModalOpen(true)}
-                variant="outline"
-                className="gap-2 border-border"
-              >
-                <FileText className="h-4 w-4" />
-                Logs
-              </Button>
-              <Button
-                onClick={() => setIsSourceModalOpen(true)}
-                variant="outline"
-                className="gap-2 border-border"
-              >
-                <Settings className="h-4 w-4" />
-                Sources
-              </Button>
-            </>
-          )}
-          <Button
-            onClick={handleAddNew}
-            className="gap-2 bg-foreground text-background hover:bg-foreground/90"
-          >
-            <Plus className="h-4 w-4" />
-            Add New Record
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="gap-2 border-border"
-              >
-                Bulk Add
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsBulkAddModalOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Manual
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsExcelImportModalOpen(true)}>
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Excel Import
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        <FilterBar filters={filters} onFiltersChange={setFilters} sources={sources} />
-        <DataTable
-          records={filteredRecords}
-          onEdit={handleEdit}
-          onDelete={handleDeleteClick}
-          onView={(record) => setViewingRecord(record)}
-          selectedRecords={selectedRecords}
-          onSelectionChange={setSelectedRecords}
-        />
       </main>
-      <RecordModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
-        editingRecord={editingRecord}
-        sources={sources}
-      />
-      {isAdmin && (
-        <SourceManagementModal
-          isOpen={isSourceModalOpen}
-          onClose={() => setIsSourceModalOpen(false)}
-          sources={sources}
-          onSourcesChange={async (newSources, showNotification = false) => {
-            try {
-              await sourcesAPI.updateAll(newSources);
-              setSources(newSources);
-              if (showNotification) {
-                toast('Sources updated successfully', {
-                  style: {
-                    background: 'hsl(45, 93%, 47%)',
-                    color: 'white',
-                    border: 'none',
-                  },
-                });
-              }
-            } catch (error) {
-              toast(error instanceof Error ? error.message : 'Failed to update sources', {
-                style: {
-                  background: 'hsl(45, 93%, 47%)',
-                  color: 'white',
-                  border: 'none',
-                },
-              });
-            }
-          }}
-        />
-      )}
-      <RecordDetailsModal
-        isOpen={!!viewingRecord}
-        onClose={() => setViewingRecord(null)}
-        record={viewingRecord}
-      />
-      <DeleteConfirmDialog
-        isOpen={!!deleteRecord}
-        record={deleteRecord}
-        onConfirm={handleDeleteConfirm}
-        onCancel={() => setDeleteRecord(null)}
-      />
-      {isAdmin && (
-        <TrashModalWithConfirm
-          isOpen={isTrashModalOpen}
-          onClose={() => setIsTrashModalOpen(false)}
-          deletedRecords={deletedRecords}
-          onRestore={handleRestore}
-          onPermanentDelete={handlePermanentDelete}
-          onEmptyTrash={handleEmptyTrash}
-        />
-      )}
-      {isAdmin && (
-        <LogsModal
-          isOpen={isLogsModalOpen}
-          onClose={() => setIsLogsModalOpen(false)}
-        />
-      )}
-      <BulkAddModal
-        isOpen={isBulkAddModalOpen}
-        onClose={() => setIsBulkAddModalOpen(false)}
-        sources={sources}
-        onSave={async (entries) => {
-          try {
-            const result = await identitiesAPI.createBulk(entries);
-
-            // Refresh records
-            const fetchedRecords = await identitiesAPI.getAll();
-            setRecords(fetchedRecords);
-
-            // Show success/partial success notification
-            if (result.failed === 0) {
-              toast(`Successfully added ${result.success} record${result.success !== 1 ? 's' : ''}`, {
-                style: {
-                  background: 'hsl(142, 76%, 36%)',
-                  color: 'white',
-                  border: 'none',
-                },
-              });
-            } else {
-              toast(`Added ${result.success} of ${entries.length} records. ${result.failed} failed.`, {
-                style: {
-                  background: 'hsl(45, 93%, 47%)',
-                  color: 'white',
-                  border: 'none',
-                },
-              });
-
-              // Show details of failed entries if any
-              if (result.results.failed.length > 0) {
-                const failedDetails = result.results.failed
-                  .map((f) => `Row ${f.index}: ${f.error}`)
-                  .join('\n');
-                console.error('Failed entries:', failedDetails);
-              }
-            }
-          } catch (error) {
-            toast(error instanceof Error ? error.message : 'Failed to save bulk entries', {
-              style: {
-                background: 'hsl(0, 84%, 60%)',
-                color: 'white',
-                border: 'none',
-              },
-            });
-            throw error;
-          }
-        }}
-      />
-      <ExcelImportModal
-        isOpen={isExcelImportModalOpen}
-        onClose={() => setIsExcelImportModalOpen(false)}
-        sources={sources}
-        onSave={async (entries) => {
-          try {
-            const result = await identitiesAPI.createBulk(entries);
-
-            // Refresh records
-            const fetchedRecords = await identitiesAPI.getAll();
-            setRecords(fetchedRecords);
-
-            // Show success/partial success notification
-            if (result.failed === 0) {
-              toast.success(`Successfully imported ${result.success} record${result.success !== 1 ? 's' : ''}`, {
-                style: {
-                  background: 'hsl(142, 76%, 36%)',
-                  color: 'white',
-                  border: 'none',
-                },
-              });
-            } else {
-              toast(`Imported ${result.success} of ${entries.length} records. ${result.failed} failed.`, {
-                style: {
-                  background: 'hsl(45, 93%, 47%)',
-                  color: 'white',
-                  border: 'none',
-                },
-              });
-
-              if (result.results.failed.length > 0) {
-                const failedDetails = result.results.failed
-                  .map((f) => `Row ${f.index}: ${f.error}`)
-                  .join('\n');
-                console.error('Failed entries:', failedDetails);
-              }
-            }
-          } catch (error) {
-            toast(error instanceof Error ? error.message : 'Failed to import records', {
-              style: {
-                background: 'hsl(0, 84%, 60%)',
-                color: 'white',
-                border: 'none',
-              },
-            });
-            throw error;
-          }
-        }}
-      />
     </div>
   );
 };

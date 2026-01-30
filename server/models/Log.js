@@ -26,6 +26,8 @@ const logSchema = new mongoose.Schema({
       'deactivate_user',
       'change_user_password',
       'delete_user',
+      'user_login',
+      'user_logout',
     ],
   },
   userId: {
@@ -45,6 +47,19 @@ const logSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.Mixed,
     default: {},
   },
+  deviceType: {
+    type: String,
+    enum: ['desktop', 'mobile', 'tablet', 'unknown'],
+    default: null,
+  },
+  ipAddress: {
+    type: String,
+    default: null,
+  },
+  userAgent: {
+    type: String,
+    default: null,
+  },
   timestamp: {
     type: Date,
     default: getISTDate,
@@ -59,6 +74,7 @@ const logSchema = new mongoose.Schema({
 logSchema.index({ timestamp: -1 });
 logSchema.index({ userId: 1 });
 logSchema.index({ action: 1 });
+logSchema.index({ deviceType: 1 });
 
 // Method to format the log entry for display
 logSchema.methods.getFormattedDetails = function () {
@@ -91,6 +107,10 @@ logSchema.methods.getFormattedDetails = function () {
       return `Changed password for: ${details.email || 'Unknown'}`;
     case 'delete_user':
       return `Deleted user: ${details.email || 'Unknown'}${details.name ? ` (${details.name})` : ''}`;
+    case 'user_login':
+      return `Logged in from ${details.deviceType || 'unknown device'}`;
+    case 'user_logout':
+      return `Logged out from ${details.deviceType || 'unknown device'}`;
     default:
       return JSON.stringify(details);
   }

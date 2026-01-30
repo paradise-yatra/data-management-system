@@ -1,28 +1,25 @@
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import { getRbacConnection } from '../config/db.js';
 import User from '../models/User.js';
+import Role from '../models/Role.js';
 
-// Load environment variables
 dotenv.config();
 
 const createAdmin = async () => {
   try {
-    // Connect to MongoDB
-    const mongoUri = process.env.MONGODB_URI;
-    if (!mongoUri) {
-      console.error('MONGODB_URI is not defined in environment variables');
+    const conn = getRbacConnection();
+    if (!conn) {
+      console.error('RBAC connection not available. Check MONGODB_URI.');
       process.exit(1);
     }
-
-    await mongoose.connect(mongoUri);
-    console.log('Connected to MongoDB');
+    await conn.asPromise();
+    console.log('Connected to RBAC database');
 
     // Admin credentials - change these!
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@paradiseyatra.com';
     const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
     const adminName = process.env.ADMIN_NAME || 'Administrator';
 
-    // Check if admin already exists
     const existingAdmin = await User.findOne({ email: adminEmail.toLowerCase() });
     if (existingAdmin) {
       console.log('Admin user already exists:', adminEmail);
@@ -30,12 +27,13 @@ const createAdmin = async () => {
       process.exit(0);
     }
 
-    // Create admin user
+    const adminRole = await Role.findOne({ name: 'Admin' });
     const admin = new User({
       email: adminEmail.toLowerCase(),
       password: adminPassword,
       name: adminName,
       role: 'admin',
+      roleId: adminRole?._id ?? undefined,
       isActive: true,
     });
 

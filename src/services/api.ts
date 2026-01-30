@@ -1,6 +1,7 @@
 import { LeadRecord } from '@/types/record';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+console.log('API_BASE_URL:', API_BASE_URL);
 
 // Helper to get auth headers
 const getAuthHeaders = (): HeadersInit => {
@@ -23,12 +24,15 @@ const handleAuthError = (response: Response) => {
   }
 };
 
+import type { AccessLevel, Resource, Role, PermissionsMap } from '@/types/rbac';
+
 // User type for API
 export interface UserRecord {
   _id: string;
   email: string;
   name: string;
   role: 'admin' | 'manager' | 'user';
+  roleId?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -36,8 +40,11 @@ export interface UserRecord {
 
 // Auth API
 export const authAPI = {
-  // Login
-  login: async (email: string, password: string): Promise<{ token: string; user: UserRecord }> => {
+  // Login (returns user, token, permissions)
+  login: async (
+    email: string,
+    password: string
+  ): Promise<{ token: string; user: UserRecord; permissions: PermissionsMap }> => {
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
       headers: {
@@ -62,8 +69,8 @@ export const authAPI = {
     });
   },
 
-  // Get current user
-  getCurrentUser: async (): Promise<{ user: UserRecord }> => {
+  // Get current user (includes permissions)
+  getCurrentUser: async (): Promise<{ user: UserRecord; permissions: PermissionsMap }> => {
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
       headers: getAuthHeaders(),
       credentials: 'include',
@@ -88,9 +95,129 @@ export const authAPI = {
       throw new Error(error.error || 'Failed to change password');
     }
   },
+
+  // Update theme preference
+  updateThemePreference: async (themePreference: 'light' | 'dark' | 'system'): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/auth/theme`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ themePreference }),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update theme preference');
+    }
+  },
 };
 
-// Users API (admin only)
+// RBAC API
+export const rbacAPI = {
+  getResources: async (): Promise<Resource[]> => {
+    const response = await fetch(`${API_BASE_URL}/rbac/resources`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch resources');
+    }
+    return response.json();
+  },
+
+  getMyPermissions: async (): Promise<{ permissions: PermissionsMap }> => {
+    const response = await fetch(`${API_BASE_URL}/rbac/me/permissions`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch permissions');
+    }
+    return response.json();
+  },
+
+  getRoles: async (): Promise<Role[]> => {
+    const response = await fetch(`${API_BASE_URL}/rbac/roles`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch roles');
+    }
+    return response.json();
+  },
+
+  getRoleById: async (id: string): Promise<Role> => {
+    const response = await fetch(`${API_BASE_URL}/rbac/roles/${id}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch role');
+    }
+    return response.json();
+  },
+
+  createRole: async (data: {
+    name: string;
+    description?: string;
+    permissions: { resourceKey: string; accessLevel: AccessLevel }[];
+    isSystem?: boolean;
+  }): Promise<Role> => {
+    const response = await fetch(`${API_BASE_URL}/rbac/roles`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create role');
+    }
+    return response.json();
+  },
+
+  updateRole: async (
+    id: string,
+    data: {
+      name?: string;
+      description?: string;
+      permissions?: { resourceKey: string; accessLevel: AccessLevel }[];
+      isSystem?: boolean;
+    }
+  ): Promise<Role> => {
+    const response = await fetch(`${API_BASE_URL}/rbac/roles/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update role');
+    }
+    return response.json();
+  },
+
+  deleteRole: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/rbac/roles/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete role');
+    }
+  },
+};
+
+// Users API (permission: manage_users)
 export const usersAPI = {
   // Get all users
   getAll: async (): Promise<UserRecord[]> => {
@@ -120,8 +247,10 @@ export const usersAPI = {
     return response.json();
   },
 
-  // Create a new user
-  create: async (data: { email: string; password: string; name: string; role?: string }): Promise<UserRecord> => {
+  // Create a new user (role or roleId)
+  create: async (
+    data: { email: string; password: string; name: string; role?: string; roleId?: string | null }
+  ): Promise<UserRecord> => {
     const response = await fetch(`${API_BASE_URL}/users`, {
       method: 'POST',
       headers: getAuthHeaders(),
@@ -136,8 +265,11 @@ export const usersAPI = {
     return response.json();
   },
 
-  // Update a user
-  update: async (id: string, data: Partial<{ email: string; name: string; role: string; isActive: boolean; password: string }>): Promise<UserRecord> => {
+  // Update a user (role or roleId)
+  update: async (
+    id: string,
+    data: Partial<{ email: string; name: string; role: string; roleId: string | null; isActive: boolean; password: string }>
+  ): Promise<UserRecord> => {
     const response = await fetch(`${API_BASE_URL}/users/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
@@ -166,12 +298,15 @@ export const usersAPI = {
     }
   },
 
-  // Change user role
-  changeRole: async (id: string, role: string): Promise<UserRecord> => {
+  // Change user role (pass role string or roleId)
+  changeRole: async (
+    id: string,
+    payload: { role?: string; roleId?: string }
+  ): Promise<UserRecord> => {
     const response = await fetch(`${API_BASE_URL}/users/${id}/role`, {
       method: 'PUT',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ role }),
+      body: JSON.stringify(payload),
       credentials: 'include',
     });
     if (!response.ok) {
@@ -711,5 +846,384 @@ export const logsAPI = {
     }
     return response.json();
   },
+
+  // Get auth logs (login/logout) with filtering
+  getAuthLogs: async (params?: {
+    page?: number;
+    limit?: number;
+    userId?: string;
+    deviceType?: 'desktop' | 'mobile' | 'tablet' | 'unknown';
+    action?: 'user_login' | 'user_logout';
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  }): Promise<LogsResponse> => {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    // Filter for auth actions only
+    queryParams.append('action', params?.action || 'user_login,user_logout');
+    if (params?.userId) queryParams.append('userId', params.userId);
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const url = `${API_BASE_URL}/logs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      let errorMessage = 'Failed to fetch auth logs';
+      try {
+        const error = await response.json();
+        errorMessage = error.error || errorMessage;
+      } catch (e) {
+        const text = await response.text();
+        errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        console.error('Non-JSON response:', text.substring(0, 200));
+      }
+      throw new Error(errorMessage);
+    }
+    const data = await response.json();
+
+    // Filter by deviceType if specified
+    if (params?.deviceType && data.logs) {
+      data.logs = data.logs.filter((log: any) =>
+        log.deviceType === params.deviceType ||
+        log.details?.deviceType === params.deviceType
+      );
+      // Recalculate pagination after filtering
+      data.pagination.total = data.logs.length;
+      data.pagination.totalPages = Math.ceil(data.logs.length / (params.limit || 50));
+    }
+
+    return data;
+  },
 };
 
+// Tour Categories API
+export interface TourCategoryRecord {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  isActive: boolean;
+  packageCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const tourCategoriesAPI = {
+  // Get all categories
+  getAll: async (): Promise<TourCategoryRecord[]> => {
+    const response = await fetch(`${API_BASE_URL}/tour-categories`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch tour categories');
+    }
+    const data = await response.json();
+    return data.data;
+  },
+
+  // Get a single category
+  getById: async (id: string): Promise<TourCategoryRecord> => {
+    const response = await fetch(`${API_BASE_URL}/tour-categories/${id}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch tour category');
+    }
+    const data = await response.json();
+    return data.data;
+  },
+
+  // Create a new category
+  create: async (data: Omit<TourCategoryRecord, '_id' | 'createdAt' | 'updatedAt'>): Promise<TourCategoryRecord> => {
+    const response = await fetch(`${API_BASE_URL}/tour-categories`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create tour category');
+    }
+    const result = await response.json();
+    return result.data;
+  },
+
+  // Update a category
+  update: async (id: string, data: Partial<TourCategoryRecord>): Promise<TourCategoryRecord> => {
+    const response = await fetch(`${API_BASE_URL}/tour-categories/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update tour category');
+    }
+    const result = await response.json();
+    return result.data;
+  },
+
+  // Delete a category
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/tour-categories/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete tour category');
+    }
+    await response.json();
+  },
+};
+
+// Tour Packages API
+export interface TourPackageRecord {
+  _id: string;
+  title: string;
+  slug: string;
+  category: string | { _id: string; name: string; slug?: string };
+  location?: string;
+  locations?: string[];
+  durationDays: number;
+  durationNights: number;
+  minPeople: number;
+  maxPeople: number;
+  isActive: boolean;
+  basePrice: number;
+  priceUnit: string;
+  overviewDescription: string;
+  guideType: string;
+  languages: string[];
+  mainImage: string;
+  galleryImages: string[];
+  amenities: string[];
+  highlights?: string[];
+  itinerary: any[];
+  // Backend fields
+  status?: 'draft' | 'published' | 'archived';
+  duration?: { days: number; nights: number };
+  startingPrice?: number;
+  overview?: { title: string; description: string };
+  amenityIds?: string[];
+  seo?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    metaKeywords?: string[];
+    canonicalUrl?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const packagesAPI = {
+  getAll: async (category?: string): Promise<TourPackageRecord[]> => {
+    const url = category ? `${API_BASE_URL}/packages?category=${category}` : `${API_BASE_URL}/packages`;
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch packages');
+    }
+    const data = await response.json();
+    return data.data;
+  },
+
+  getById: async (id: string): Promise<TourPackageRecord> => {
+    const response = await fetch(`${API_BASE_URL}/packages/${id}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch package');
+    }
+    const data = await response.json();
+    return data.data;
+  },
+
+  create: async (data: Partial<TourPackageRecord>): Promise<TourPackageRecord> => {
+    const response = await fetch(`${API_BASE_URL}/packages`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create package');
+    }
+    const result = await response.json();
+    return result.data;
+  },
+
+  update: async (id: string, data: Partial<TourPackageRecord>): Promise<TourPackageRecord> => {
+    const response = await fetch(`${API_BASE_URL}/packages/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update package');
+    }
+    const result = await response.json();
+    return result.data;
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/packages/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete package');
+    }
+    // Delete returns { success: true, message: ... }
+    await response.json();
+  },
+
+  uploadImage: async (file: File): Promise<{ url: string; public_id: string }> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const token = localStorage.getItem('authToken');
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/packages/upload`, {
+      method: 'POST',
+      headers: headers, // Do not set Content-Type for FormData
+      body: formData,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to upload image');
+    }
+    const result = await response.json();
+    return result.data;
+  }
+};
+
+
+
+// Destinations API
+export interface DestinationRecord {
+  _id: string;
+  name: string;
+  slug: string;
+  description: string;
+  isActive: boolean;
+  packageCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const destinationsAPI = {
+  // Get all destinations
+  getAll: async (): Promise<DestinationRecord[]> => {
+    const response = await fetch(`${API_BASE_URL}/destinations`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch destinations');
+    }
+    const data = await response.json();
+    return data.data;
+  },
+
+  // Get a single destination
+  getById: async (id: string): Promise<DestinationRecord> => {
+    const response = await fetch(`${API_BASE_URL}/destinations/${id}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch destination');
+    }
+    const data = await response.json();
+    return data.data;
+  },
+
+  // Create a new destination
+  create: async (data: Omit<DestinationRecord, '_id' | 'createdAt' | 'updatedAt'>): Promise<DestinationRecord> => {
+    const response = await fetch(`${API_BASE_URL}/destinations`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to create destination');
+    }
+    const result = await response.json();
+    return result.data;
+  },
+
+  // Update a destination
+  update: async (id: string, data: Partial<DestinationRecord>): Promise<DestinationRecord> => {
+    const response = await fetch(`${API_BASE_URL}/destinations/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to update destination');
+    }
+    const result = await response.json();
+    return result.data;
+  },
+
+  // Delete a destination
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/destinations/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete destination');
+    }
+    await response.json();
+  },
+};

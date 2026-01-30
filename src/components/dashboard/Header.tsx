@@ -10,7 +10,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/components/animate-ui/components/radix/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 
 export function Header() {
@@ -52,63 +52,14 @@ export function Header() {
       className="bg-background py-6"
     >
       <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
-        <h1 className="text-4xl font-extrabold tracking-tight text-foreground">
+        <h1
+          className="text-4xl font-extrabold tracking-tight text-foreground cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => navigate('/')}
+        >
           Paradise Yatra
-          </h1>
+        </h1>
 
         <div className="flex items-center gap-3">
-          {isAdmin && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/users')}
-              className="gap-2 border-border"
-            >
-              <Users className="h-4 w-4" />
-              Manage Users
-            </Button>
-          )}
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 border-border"
-              >
-                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-foreground/10">
-                  <User className="h-3.5 w-3.5" />
-                </div>
-                <span className="max-w-[100px] truncate">{user?.name || 'User'}</span>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{user?.name}</p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user?.email}
-                  </p>
-                  <Badge
-                    variant="outline"
-                    className={`mt-2 gap-1 w-fit ${getRoleBadgeClass()}`}
-                  >
-                    {getRoleIcon()}
-                    {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User'}
-                  </Badge>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={handleLogout}
-                className="text-destructive focus:text-destructive cursor-pointer"
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </motion.header>

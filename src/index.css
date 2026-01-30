@@ -120,19 +120,52 @@ html {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--muted));
+  background: #101622;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground));
-  border-radius: 3px;
+  background: #3b4354;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--foreground));
+  background: #4b5563;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.icon-filled {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* View Transitions for Theme Change */
+::view-transition-group(root) {
+  animation-duration: 0.7s;
+}
+
+::view-transition-new(root) {
+  animation: 0.7s cubic-bezier(0.4, 0, 0.2, 1) both sweep-in;
+  z-index: 1;
+}
+
+::view-transition-old(root) {
+  animation: none;
+  z-index: 0;
+}
+
+@keyframes sweep-in {
+  from {
+    clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+  }
+
+  to {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
 }
