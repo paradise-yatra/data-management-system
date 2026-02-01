@@ -71,6 +71,7 @@ const pathToResourceKey: Record<string, string> = {
     '/rbac/roles': 'rbac_system',
     '/rbac/users': 'rbac_system',
     '/rbac/logs': 'rbac_system',
+    '/itinerary-builder': 'itinerary_builder',
 };
 
 export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
@@ -145,6 +146,11 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     ];
 
     const moduleItems = [
+        {
+            label: 'Itinerary Builder',
+            icon: <FileText className="h-5 w-5" />,
+            path: '/itinerary-builder',
+        },
         {
             label: 'HR Portal',
             icon: <Users className="h-5 w-5" />,

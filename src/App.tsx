@@ -24,6 +24,9 @@ import { UserManagementPanel } from "@/components/user-management/UserManagement
 import AccessDenied from "./pages/AccessDenied";
 import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
+import { CostLibrary } from "./pages/itinerary-builder/CostLibrary";
+import { ItineraryList } from "./pages/itinerary-builder/ItineraryList";
+import { ItineraryForm } from "./pages/itinerary-builder/ItineraryForm";
 
 const queryClient = new QueryClient();
 
@@ -143,6 +146,46 @@ const App = () => (
               element={
                 <ProtectedRoute resourceKey="voya_trail_package_form" requiredLevel="view">
                   <PackageForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/itinerary-builder"
+              element={
+                <ProtectedRoute>
+                  <ItineraryList />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/itinerary-builder/cost-library"
+              element={
+                <ProtectedRoute>
+                  <CostLibrary />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/itinerary-builder/new"
+              element={
+                <ProtectedRoute>
+                  <ItineraryForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/itinerary-builder/:id"
+              element={
+                <ProtectedRoute>
+                  <ItineraryForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/itinerary-builder/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <ItineraryForm />
                 </ProtectedRoute>
               }
             />

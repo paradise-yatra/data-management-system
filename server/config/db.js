@@ -113,4 +113,36 @@ export const getRbacConnection = () => {
   }
 };
 
+let paradiseYatraCRMConnection;
+
+export const getParadiseYatraCRMConnection = () => {
+  if (paradiseYatraCRMConnection) {
+    return paradiseYatraCRMConnection;
+  }
+
+  if (!process.env.MONGODB_URI) {
+    console.error('MONGODB_URI is not defined in .env file');
+    return null;
+  }
+
+  try {
+    paradiseYatraCRMConnection = mongoose.createConnection(process.env.MONGODB_URI, {
+      dbName: 'Itinerary-Builder'
+    });
+
+    paradiseYatraCRMConnection.on('connected', () => {
+      console.log('Itinerary-Builder MongoDB Connected');
+    });
+
+    paradiseYatraCRMConnection.on('error', (err) => {
+      console.error('Itinerary-Builder MongoDB Connection Error:', err);
+    });
+
+    return paradiseYatraCRMConnection;
+  } catch (error) {
+    console.error('Error creating Itinerary-Builder DB connection:', error);
+    return null;
+  }
+};
+
 

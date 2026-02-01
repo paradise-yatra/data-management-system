@@ -56,6 +56,13 @@ const Index = () => {
 
   const allModules = [
     {
+      title: 'Itinerary Builder',
+      description: 'Create client itineraries & auto pricing',
+      icon: <FileText className="h-6 w-6" />,
+      path: '/itinerary-builder',
+      comingSoon: false,
+    },
+    {
       title: 'Human Resource Management',
       description: 'Manage leave & payroll',
       icon: <Users className="h-6 w-6" />,

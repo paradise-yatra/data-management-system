@@ -49,24 +49,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const canAccess = useCallback(
     (resourceKey: string): AccessLevel => {
+      // Admin users have full access to everything
+      if (isAdmin) {
+        return 'full';
+      }
       return permissions[resourceKey] ?? 'none';
     },
-    [permissions]
+    [permissions, isAdmin]
   );
   const canView = useCallback(
-    (resourceKey: string) => (permissions[resourceKey] ?? 'none') !== 'none',
-    [permissions]
+    (resourceKey: string) => {
+      // Admin users can view everything
+      if (isAdmin) {
+        return true;
+      }
+      return (permissions[resourceKey] ?? 'none') !== 'none';
+    },
+    [permissions, isAdmin]
   );
   const canEdit = useCallback(
     (resourceKey: string) => {
+      // Admin users can edit everything
+      if (isAdmin) {
+        return true;
+      }
       const level = permissions[resourceKey] ?? 'none';
       return level === 'edit' || level === 'full';
     },
-    [permissions]
+    [permissions, isAdmin]
   );
   const canDelete = useCallback(
-    (resourceKey: string) => (permissions[resourceKey] ?? 'none') === 'full',
-    [permissions]
+    (resourceKey: string) => {
+      // Admin users can delete everything
+      if (isAdmin) {
+        return true;
+      }
+      return (permissions[resourceKey] ?? 'none') === 'full';
+    },
+    [permissions, isAdmin]
   );
   const canManage = canDelete; // Alias for backward compatibility
 

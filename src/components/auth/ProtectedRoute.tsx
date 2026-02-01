@@ -36,6 +36,10 @@ export function ProtectedRoute({
 
   // Permission-based: check resourceKey
   if (resourceKey) {
+    // Admin users bypass all permission checks
+    if (user?.role === 'admin') {
+      return <>{children}</>;
+    }
     const access: AccessLevel = canAccess(resourceKey);
     if (access === 'none') {
       return <Navigate to="/access-denied" replace />;
@@ -44,7 +48,8 @@ export function ProtectedRoute({
   }
 
   // Legacy: role-based check
-  if (requiredRoles && user && !requiredRoles.includes(user.role)) {
+  // Admin users bypass role checks
+  if (requiredRoles && user && user.role !== 'admin' && !requiredRoles.includes(user.role)) {
     return <Navigate to="/access-denied" replace />;
   }
 

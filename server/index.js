@@ -19,6 +19,10 @@ import tourCategoriesRoutes from './routes/tourCategories.js';
 import packageRoutes from './routes/packageRoutes.js';
 import destinationRoutes from './routes/destinations.js';
 import rbacRoutes from './routes/rbac.js';
+import costItemsRoutes from './routes/costItems.js';
+import citiesRoutes from './routes/cities.js';
+import itinerariesRoutes from './routes/itineraries.js';
+import settingsRoutes from './routes/settings.js';
 import { authenticateToken } from './middleware/auth.js';
 
 const app = express();
@@ -77,6 +81,10 @@ app.use('/api/tour-categories', tourCategoriesRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/destinations', destinationRoutes);
 app.use('/api/rbac', rbacRoutes);
+app.use('/api/cost-items', costItemsRoutes);
+app.use('/api/cities', citiesRoutes);
+app.use('/api/itineraries', itinerariesRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
