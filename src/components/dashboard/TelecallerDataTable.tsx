@@ -29,7 +29,7 @@ import { showToast } from '@/utils/notifications';
 interface TelecallerDataTableProps {
     records: TelecallerLeadRecord[];
     onEdit: (record: TelecallerLeadRecord) => void;
-    onDelete: (record: TelecallerLeadRecord) => void;
+    onDelete?: (record: TelecallerLeadRecord) => void;
     onView: (record: TelecallerLeadRecord) => void;
     onRefresh: () => void;
 }
@@ -229,19 +229,21 @@ export function TelecallerDataTable({
                                                             </TooltipTrigger>
                                                             <TooltipContent>Edit lead</TooltipContent>
                                                         </Tooltip>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() => onDelete(record)}
-                                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </TooltipTrigger>
-                                                            <TooltipContent>Delete lead</TooltipContent>
-                                                        </Tooltip>
+                                                        {onDelete && (
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        onClick={() => onDelete(record)}
+                                                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent>Delete lead</TooltipContent>
+                                                            </Tooltip>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                             </motion.tr>

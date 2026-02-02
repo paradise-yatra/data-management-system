@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,6 +66,7 @@ interface ScheduleResponse {
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export default function BackupsPanel() {
+    const { isAdmin, isLoading: isAuthLoading } = useAuth();
     const [backups, setBackups] = useState<Backup[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [totalSize, setTotalSize] = useState('0 Bytes');
@@ -76,6 +78,7 @@ export default function BackupsPanel() {
     const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchBackups = useCallback(async () => {
+        if (!isAdmin) return;
         try {
             const response = await fetch(`${API_BASE_URL}/backups`, {
                 credentials: 'include'
@@ -94,6 +97,7 @@ export default function BackupsPanel() {
     }, []);
 
     const fetchSchedule = useCallback(async () => {
+        if (!isAdmin) return;
         try {
             const response = await fetch(`${API_BASE_URL}/backups/schedule`, {
                 credentials: 'include'

@@ -409,7 +409,7 @@ const TelecallerPanel = () => {
                     <TelecallerDataTable
                         records={filteredLeads}
                         onEdit={(l) => { setEditingLead(l); setIsModalOpen(true); }}
-                        onDelete={(l) => { setDeleteLead(l); }}
+                        onDelete={!isAssignedView ? (l) => { setDeleteLead(l); } : undefined}
                         onView={(l) => { setViewingLead(l); }}
                         onRefresh={fetchData}
                     />

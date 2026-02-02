@@ -1,11 +1,13 @@
 import './env.js';
 import express from 'express';
-
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
+import { initializeSocket } from './socket/index.js';
 import sourcesRoutes from './routes/sources.js';
 import identitiesRoutes from './routes/identities.js';
 import trashRoutes from './routes/trash.js';
@@ -31,9 +33,11 @@ import telecallerLogsRoutes from './routes/telecallerLogs.js';
 import telecallerTrashRoutes from './routes/telecallerTrash.js';
 import departmentsRoutes from './routes/departments.js';
 import backupsRoutes from './routes/backups.js';
+import notificationsRoutes from './routes/notifications.js';
 import { authenticateToken } from './middleware/auth.js';
 
 const app = express();
+const httpServer = createServer(app);
 
 const PORT = process.env.PORT || 3001;
 
@@ -101,6 +105,7 @@ app.use('/api/telecaller-logs', telecallerLogsRoutes);
 app.use('/api/telecaller-trash', telecallerTrashRoutes);
 app.use('/api/departments', departmentsRoutes);
 app.use('/api/backups', authenticateToken, backupsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -128,9 +133,37 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+// Initialize Socket.io
+const io = new Server(httpServer, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost')) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
+});
+
+// Initialize socket handlers
+initializeSocket(io);
+
+// Make io accessible to routes via middleware
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
+// Export io for use in other modules
+export { io };
+
 // Start server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Socket.io enabled for real-time notifications`);
   if (process.env.NODE_ENV === 'production') {
     console.log(`Serving static files from: ${path.join(rootDir, 'dist')}`);
   }

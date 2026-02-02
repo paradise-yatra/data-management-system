@@ -6,6 +6,8 @@ import { createLog } from '../utils/logger.js';
 import { logTelecallerAction } from '../utils/telecallerLogger.js';
 import TelecallerTrash from '../models/TelecallerTrash.js';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
+import { sendNotificationToUser } from '../socket/index.js';
 
 const router = express.Router();
 
@@ -182,6 +184,30 @@ router.post('/:id/transfer', requirePermission('telecaller_transfer', 'view'), a
             from: previousOwnerName,
             to: targetUser.name
         });
+
+        // Create notification for the target user
+        const notification = await Notification.create({
+            recipient: userId,
+            type: 'lead_assignment',
+            title: 'New Lead Assigned',
+            message: `${req.user.name} assigned you a lead: ${lead.leadName || lead.phone}`,
+            link: '/sales/telecaller/assigned',
+            metadata: {
+                leadId: lead._id,
+                leadName: lead.leadName,
+                phone: lead.phone,
+                assignedBy: req.user.name,
+                destination: lead.destination
+            }
+        });
+
+        // Send real-time notification via Socket.io
+        if (req.io) {
+            sendNotificationToUser(req.io, userId.toString(), {
+                ...notification.toObject(),
+                timeAgo: 'Just now'
+            });
+        }
 
         res.json({ message: 'Lead transferred successfully', lead });
     } catch (error) {

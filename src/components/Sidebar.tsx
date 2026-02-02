@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/contexts/NotificationContext';
 import { SettingsModal } from './dashboard/SettingsModal';
 import { cn } from '@/lib/utils';
 import {
@@ -89,7 +90,8 @@ const pathToResourceKey: Record<string, string> = {
 export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user, logout, canView } = useAuth();
+    const { user, logout, canView, isAdmin } = useAuth();
+    const { unreadCount } = useNotifications();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
     const [deniedItem, setDeniedItem] = useState<{ label: string; path: string } | null>(null);
@@ -155,8 +157,8 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
         {
             label: 'Notifications',
             icon: <Bell className="h-5 w-5" />,
-            path: '#',
-            badge: 3
+            path: '/notifications',
+            badge: unreadCount
         },
         {
             label: 'Documents',
@@ -282,6 +284,10 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
 
     const canAccessPath = (path: string) => {
         if (path === '#') return true;
+
+        // Special case for backups - only Admin can access
+        if (path === '/backups' && !isAdmin) return false;
+
         const key = pathToResourceKey[path];
         return key ? canView(key) : true;
     };
@@ -356,6 +362,13 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
+
+    useEffect(() => {
+        if (location.pathname === '/backups' && !isAdmin && user) {
+            setDeniedItem({ label: 'Backups', path: '/backups' });
+            navigate('/');
+        }
+    }, [location.pathname, isAdmin, user, navigate]);
 
     useEffect(() => {
         const activeMenus: string[] = [];
