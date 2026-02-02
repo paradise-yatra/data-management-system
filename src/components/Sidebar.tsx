@@ -398,7 +398,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                         {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
                     </button>
                 </TooltipTrigger>
-                <TooltipContent side="right" className="z-[100]">
+                <TooltipContent side="right">
                     <p>{isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} <kbd className="ml-1 px-1 py-0.5 text-[10px] bg-muted rounded">Alt+S</kbd></p>
                 </TooltipContent>
             </Tooltip>
@@ -507,7 +507,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                         </div>
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="right" className="z-[100]">
+                                <TooltipContent side="right">
                                     <p>{item.label}</p>
                                 </TooltipContent>
                             </Tooltip>
@@ -624,7 +624,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                             </div>
                                         </button>
                                     </TooltipTrigger>
-                                    <TooltipContent side="right" className="z-[100]">
+                                    <TooltipContent side="right">
                                         <p>{item.label}</p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -702,7 +702,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                                 </div>
                                             </button>
                                         </TooltipTrigger>
-                                        <TooltipContent side="right" className="z-[100]">
+                                        <TooltipContent side="right">
                                             <p>{item.label}</p>
                                         </TooltipContent>
                                     </Tooltip>
