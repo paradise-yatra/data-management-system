@@ -39,10 +39,17 @@ import { logsAPI } from '@/services/api';
 import type { AuthLogRecord, LogUser } from '@/types/logs';
 import { showToast } from '@/utils/notifications';
 import { cn } from '@/lib/utils';
+import { DatePicker } from '@/components/ui/date-picker';
+import { formatISO } from 'date-fns';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function AuthLogs() {
   const navigate = useNavigate();
-  const [logs, setLogs] = useState<AuthLogRecord[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
   const [users, setUsers] = useState<LogUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -128,11 +135,11 @@ export function AuthLogs() {
     // The timestamp from database has IST offset already added incorrectly
     // We need to subtract the offset first, then format as IST
     const date = new Date(dateString);
-    
+
     // Subtract IST offset (5.5 hours) that was incorrectly added during storage
     const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in milliseconds
     const correctedDate = new Date(date.getTime() - istOffset);
-    
+
     // Now format in IST timezone
     const formatter = new Intl.DateTimeFormat('en-IN', {
       timeZone: 'Asia/Kolkata',
@@ -144,7 +151,7 @@ export function AuthLogs() {
       second: '2-digit',
       hour12: false,
     });
-    
+
     return formatter.format(correctedDate) + ' IST';
   };
 
@@ -208,19 +215,24 @@ export function AuthLogs() {
             <Filter className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-sm font-semibold text-foreground">Filters</h3>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setPage(1);
-              fetchLogs();
-            }}
-            disabled={loading}
-            className="gap-2"
-          >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-            Refresh
-          </Button>
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setPage(1);
+                  fetchLogs();
+                }}
+                disabled={loading}
+                className="gap-2"
+              >
+                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+                Refresh
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Refresh logs</TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -277,11 +289,11 @@ export function AuthLogs() {
           {/* Date Range */}
           <div className="space-y-2">
             <Label htmlFor="start-date" className="text-xs">Start Date</Label>
-            <Input
-              id="start-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+            <DatePicker
+              date={startDate ? new Date(startDate) : undefined}
+              setDate={(date) => setStartDate(date ? formatISO(date, { representation: 'date' }) : '')}
+              placeholder="Select start date"
+              className="h-10"
             />
           </div>
         </div>
@@ -290,11 +302,11 @@ export function AuthLogs() {
           {/* End Date */}
           <div className="space-y-2">
             <Label htmlFor="end-date" className="text-xs">End Date</Label>
-            <Input
-              id="end-date"
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+            <DatePicker
+              date={endDate ? new Date(endDate) : undefined}
+              setDate={(date) => setEndDate(date ? formatISO(date, { representation: 'date' }) : '')}
+              placeholder="Select end date"
+              className="h-10"
             />
           </div>
 
@@ -313,9 +325,14 @@ export function AuthLogs() {
                   className="pl-8"
                 />
               </div>
-              <Button onClick={handleSearch} size="sm">
-                Search
-              </Button>
+              <Tooltip delayDuration={0}>
+                <TooltipTrigger asChild>
+                  <Button onClick={handleSearch} size="sm">
+                    Search
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Search logs</TooltipContent>
+              </Tooltip>
             </div>
           </div>
         </div>

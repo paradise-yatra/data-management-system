@@ -14,9 +14,10 @@ import {
   Check,
   X,
 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuth } from '@/contexts/AuthContext';
-import { usersAPI, rbacAPI } from '@/services/api';
-import type { UserRecord } from '@/services/api';
+import { usersAPI, rbacAPI, departmentsAPI } from '@/services/api';
+import type { UserRecord, Department } from '@/services/api';
 import type { Role } from '@/types/rbac';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,16 +49,19 @@ interface UserModalProps {
     password?: string;
     name: string;
     roleId?: string | null;
+    departmentId?: string | null;
   }) => Promise<void>;
   user: UserRecord | null;
   roles: Role[];
+  departments: Department[];
 }
 
-function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalProps) {
+function UserModal({ isOpen, onClose, onSave, user, roles, departments }: UserModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [roleId, setRoleId] = useState<string>('');
+  const [departmentId, setDepartmentId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,12 +70,15 @@ function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalProps) {
       setEmail(user.email);
       setName(user.name);
       setRoleId(user.roleId ?? '');
+      const deptId = typeof user.departmentId === 'object' ? user.departmentId?._id : user.departmentId;
+      setDepartmentId(deptId ?? '');
       setPassword('');
     } else {
       setEmail('');
       setPassword('');
       setName('');
       setRoleId(roles.length ? roles[0]._id : '');
+      setDepartmentId('');
     }
     setError(null);
   }, [user, isOpen, roles]);
@@ -106,6 +113,7 @@ function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalProps) {
         name,
         password: password || undefined,
         roleId: roleId || null,
+        departmentId: departmentId || null,
       });
       onClose();
     } catch (err) {
@@ -185,10 +193,26 @@ function UserModal({ isOpen, onClose, onSave, user, roles }: UserModalProps) {
                   <SelectTrigger className="border-border">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
-                  <SelectContent className="z-[110]">
+                  <SelectContent>
                     {roles.map((r) => (
                       <SelectItem key={r._id} value={r._id}>
                         {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="um-department">Department</Label>
+                <Select value={departmentId || 'none'} onValueChange={(v) => setDepartmentId(v === 'none' ? '' : v)}>
+                  <SelectTrigger className="border-border">
+                    <SelectValue placeholder="Select department (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {departments.filter(d => d.isActive).map((d) => (
+                      <SelectItem key={d._id} value={d._id}>
+                        {d.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -278,6 +302,7 @@ export function UserManagementPanel({ embedded = false }: UserManagementPanelPro
   const { user: currentUser, canManage } = useAuth();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null);
@@ -304,9 +329,19 @@ export function UserManagementPanel({ embedded = false }: UserManagementPanelPro
     }
   };
 
+  const fetchDepartments = async () => {
+    try {
+      const data = await departmentsAPI.getAll();
+      setDepartments(data);
+    } catch (error) {
+      console.error('Failed to fetch departments:', error);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchRoles();
+    fetchDepartments();
   }, []);
 
   const handleSaveUser = async (data: {
@@ -314,6 +349,7 @@ export function UserManagementPanel({ embedded = false }: UserManagementPanelPro
     password?: string;
     name: string;
     roleId?: string | null;
+    departmentId?: string | null;
   }) => {
     if (editingUser) {
       await usersAPI.update(editingUser._id, data);
@@ -324,6 +360,7 @@ export function UserManagementPanel({ embedded = false }: UserManagementPanelPro
         name: data.name,
         password: data.password!,
         roleId: data.roleId ?? undefined,
+        departmentId: data.departmentId ?? undefined,
       });
       showToast.success('User created successfully');
     }
@@ -464,6 +501,7 @@ export function UserManagementPanel({ embedded = false }: UserManagementPanelPro
                 <TableHead className="font-semibold text-foreground">Name</TableHead>
                 <TableHead className="font-semibold text-foreground">Email</TableHead>
                 <TableHead className="font-semibold text-foreground">Role</TableHead>
+                <TableHead className="font-semibold text-foreground">Department</TableHead>
                 <TableHead className="font-semibold text-foreground">Status</TableHead>
                 <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
               </TableRow>
@@ -495,6 +533,16 @@ export function UserManagementPanel({ embedded = false }: UserManagementPanelPro
                       </Badge>
                     </TableCell>
                     <TableCell>
+                      {user.departmentId ? (
+                        <Badge variant="secondary" className="gap-1">
+                          <Briefcase className="h-3 w-3" />
+                          {typeof user.departmentId === 'object' ? user.departmentId.name : 'Unknown'}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <Badge
                         variant="outline"
                         className={
@@ -509,38 +557,52 @@ export function UserManagementPanel({ embedded = false }: UserManagementPanelPro
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         {user._id !== currentUser?._id && canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleToggleActive(user)}
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            title={user.isActive ? 'Deactivate' : 'Activate'}
-                          >
-                            {user.isActive ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleToggleActive(user)}
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              >
+                                {user.isActive ? <X className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{user.isActive ? 'Deactivate user' : 'Activate user'}</TooltipContent>
+                          </Tooltip>
                         )}
                         {canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setEditingUser(user);
-                              setIsModalOpen(true);
-                            }}
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditingUser(user);
+                                  setIsModalOpen(true);
+                                }}
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit user</TooltipContent>
+                          </Tooltip>
                         )}
                         {user._id !== currentUser?._id && canEdit && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteUser(user)}
-                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteUser(user)}
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete user</TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </TableCell>
@@ -558,6 +620,7 @@ export function UserManagementPanel({ embedded = false }: UserManagementPanelPro
         onSave={handleSaveUser}
         user={editingUser}
         roles={roles}
+        departments={departments}
       />
 
       <DeleteDialog

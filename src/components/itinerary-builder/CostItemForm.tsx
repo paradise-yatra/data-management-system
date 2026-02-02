@@ -32,6 +32,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
+import { DatePicker } from '@/components/ui/date-picker';
+import { formatISO } from 'date-fns';
 
 const costItemSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -63,7 +65,7 @@ export const CostItemForm = ({ item, onClose, onSubmit, isSubmitting = false }: 
       type: item?.type || 'hotel',
       destination: item?.destination || '',
       costType: item?.costType || 'per_person',
-      baseCost: item?.baseCost || 0,
+      baseCost: item?.baseCost || undefined,
       currency: item?.currency || 'INR',
       validityStart: item?.validityStart || null,
       validityEnd: item?.validityEnd || null,
@@ -75,6 +77,13 @@ export const CostItemForm = ({ item, onClose, onSubmit, isSubmitting = false }: 
   const handleSubmit = (data: CostItemFormData) => {
     onSubmit({
       ...data,
+      name: data.name,
+      type: data.type,
+      destination: data.destination,
+      costType: data.costType,
+      baseCost: data.baseCost,
+      currency: data.currency || 'INR',
+      isActive: data.isActive ?? true,
       validityStart: data.validityStart || null,
       validityEnd: data.validityEnd || null,
     });
@@ -183,9 +192,9 @@ export const CostItemForm = ({ item, onClose, onSubmit, isSubmitting = false }: 
                         type="number"
                         step="0.01"
                         min="0"
-                        placeholder="0"
+                        placeholder="0.00"
                         {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -219,10 +228,10 @@ export const CostItemForm = ({ item, onClose, onSubmit, isSubmitting = false }: 
                   <FormItem>
                     <FormLabel>Validity Start</FormLabel>
                     <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        value={field.value || ''}
+                      <DatePicker
+                        date={field.value ? new Date(field.value) : undefined}
+                        setDate={(date) => field.onChange(date ? formatISO(date, { representation: 'date' }) : null)}
+                        placeholder="Select start date"
                       />
                     </FormControl>
                     <FormMessage />
@@ -237,10 +246,10 @@ export const CostItemForm = ({ item, onClose, onSubmit, isSubmitting = false }: 
                   <FormItem>
                     <FormLabel>Validity End</FormLabel>
                     <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                        value={field.value || ''}
+                      <DatePicker
+                        date={field.value ? new Date(field.value) : undefined}
+                        setDate={(date) => field.onChange(date ? formatISO(date, { representation: 'date' }) : null)}
+                        placeholder="Select end date"
                       />
                     </FormControl>
                     <FormMessage />

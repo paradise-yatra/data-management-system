@@ -23,6 +23,14 @@ import costItemsRoutes from './routes/costItems.js';
 import citiesRoutes from './routes/cities.js';
 import itinerariesRoutes from './routes/itineraries.js';
 import settingsRoutes from './routes/settings.js';
+import blogRoutes from './routes/blogRoutes.js';
+import telecallerLeadsRoutes from './routes/telecallerLeads.js';
+import telecallerSourcesRoutes from './routes/telecallerSources.js';
+import telecallerDestinationsRoutes from './routes/telecallerDestinations.js';
+import telecallerLogsRoutes from './routes/telecallerLogs.js';
+import telecallerTrashRoutes from './routes/telecallerTrash.js';
+import departmentsRoutes from './routes/departments.js';
+import backupsRoutes from './routes/backups.js';
 import { authenticateToken } from './middleware/auth.js';
 
 const app = express();
@@ -85,6 +93,14 @@ app.use('/api/cost-items', costItemsRoutes);
 app.use('/api/cities', citiesRoutes);
 app.use('/api/itineraries', itinerariesRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/blogs', blogRoutes);
+app.use('/api/telecaller-leads', telecallerLeadsRoutes);
+app.use('/api/telecaller-sources', telecallerSourcesRoutes);
+app.use('/api/telecaller-destinations', telecallerDestinationsRoutes);
+app.use('/api/telecaller-logs', telecallerLogsRoutes);
+app.use('/api/telecaller-trash', telecallerTrashRoutes);
+app.use('/api/departments', departmentsRoutes);
+app.use('/api/backups', authenticateToken, backupsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

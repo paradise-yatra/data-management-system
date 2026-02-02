@@ -26,6 +26,7 @@ import {
 } from '@/components/animate-ui/components/radix/dropdown-menu';
 import { LeadRecord, FilterState, SOURCES } from '@/types/record';
 import { sourcesAPI, identitiesAPI, trashAPI } from '@/services/api';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const DataManagement = () => {
   const { isAdmin } = useAuth();
@@ -392,55 +393,80 @@ const DataManagement = () => {
           </div>
           <StatsCards records={records} />
           <div className="mx-auto max-w-7xl px-6 pb-4 flex justify-end gap-3">
-            <Button
-              onClick={handleRefresh}
-              variant="outline"
-              disabled={isRefreshing}
-              className="gap-2 border-border"
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleRefresh}
+                  variant="outline"
+                  disabled={isRefreshing}
+                  className="gap-2 border-border"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Refresh all data</TooltipContent>
+            </Tooltip>
             {isAdmin && (
               <>
-                <Button
-                  onClick={() => setIsTrashModalOpen(true)}
-                  variant="outline"
-                  className="gap-2 border-border"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Trash
-                  {deletedRecords.length > 0 && (
-                    <span className="ml-1 rounded-full bg-destructive px-2 py-0.5 text-xs font-medium text-destructive-foreground">
-                      {deletedRecords.length}
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  onClick={() => setIsLogsModalOpen(true)}
-                  variant="outline"
-                  className="gap-2 border-border"
-                >
-                  <FileText className="h-4 w-4" />
-                  Logs
-                </Button>
-                <Button
-                  onClick={() => setIsSourceModalOpen(true)}
-                  variant="outline"
-                  className="gap-2 border-border"
-                >
-                  <Settings className="h-4 w-4" />
-                  Sources
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => setIsTrashModalOpen(true)}
+                      variant="outline"
+                      className="gap-2 border-border"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Trash
+                      {deletedRecords.length > 0 && (
+                        <span className="ml-1 rounded-full bg-destructive px-2 py-0.5 text-xs font-medium text-destructive-foreground">
+                          {deletedRecords.length}
+                        </span>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>View deleted records</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => setIsLogsModalOpen(true)}
+                      variant="outline"
+                      className="gap-2 border-border"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Logs
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>View activity logs</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => setIsSourceModalOpen(true)}
+                      variant="outline"
+                      className="gap-2 border-border"
+                    >
+                      <Settings className="h-4 w-4" />
+                      Sources
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Manage lead sources</TooltipContent>
+                </Tooltip>
               </>
             )}
-            <Button
-              onClick={handleAddNew}
-              className="gap-2 bg-foreground text-background hover:bg-foreground/90"
-            >
-              <Plus className="h-4 w-4" />
-              Add New Record
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleAddNew}
+                  className="gap-2 bg-foreground text-background hover:bg-foreground/90"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add New Record
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Create a new record</TooltipContent>
+            </Tooltip>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

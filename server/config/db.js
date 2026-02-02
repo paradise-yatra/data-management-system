@@ -145,4 +145,36 @@ export const getParadiseYatraCRMConnection = () => {
   }
 };
 
+let telecallingConnection;
+
+export const getTelecallingConnection = () => {
+  if (telecallingConnection) {
+    return telecallingConnection;
+  }
+
+  if (!process.env.MONGODB_URI) {
+    console.error('MONGODB_URI is not defined in .env file');
+    return null;
+  }
+
+  try {
+    telecallingConnection = mongoose.createConnection(process.env.MONGODB_URI, {
+      dbName: 'Telecalling'
+    });
+
+    telecallingConnection.on('connected', () => {
+      console.log('Telecalling MongoDB Connected');
+    });
+
+    telecallingConnection.on('error', (err) => {
+      console.error('Telecalling MongoDB Connection Error:', err);
+    });
+
+    return telecallingConnection;
+  } catch (error) {
+    console.error('Error creating Telecalling DB connection:', error);
+    return null;
+  }
+};
+
 

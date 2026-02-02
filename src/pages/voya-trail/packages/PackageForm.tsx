@@ -130,12 +130,12 @@ export default function PackageForm() {
             slug: '',
             category: '',
             location: [],
-            durationDays: 1,
-            durationNights: 0,
-            minPeople: 2,
-            maxPeople: 12,
+            durationDays: undefined,
+            durationNights: undefined,
+            minPeople: undefined,
+            maxPeople: undefined,
             isActive: false,
-            basePrice: 0,
+            basePrice: undefined,
             priceUnit: 'per person',
             overviewDescription: '',
             guideType: 'Private Expert',
@@ -698,28 +698,34 @@ export default function PackageForm() {
                                                         Duration
                                                     </CardTitle>
                                                 </CardHeader>
-                                                <CardContent className="p-6 grid grid-cols-2 gap-4">
-                                                    <FormField
-                                                        control={form.control}
-                                                        name="durationDays"
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormLabel className="text-xs font-bold text-muted-foreground">Days</FormLabel>
-                                                                <FormControl>
-                                                                    <Input type="number" {...field} className="bg-background h-10 rounded-lg border-border/50" />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    />
+                                                <CardContent className="p-6">
                                                     <FormField
                                                         control={form.control}
                                                         name="durationNights"
                                                         render={({ field }) => (
                                                             <FormItem>
-                                                                <FormLabel className="text-xs font-bold text-muted-foreground">Nights</FormLabel>
+                                                                <div className="flex justify-between items-center mb-1">
+                                                                    <FormLabel className="text-xs font-bold text-muted-foreground">Nights</FormLabel>
+                                                                    <div className="text-[10px] font-bold text-primary px-2 py-0.5 bg-primary/10 rounded-full border border-primary/20">
+                                                                        {Number(field.value) + 1} Days
+                                                                    </div>
+                                                                </div>
                                                                 <FormControl>
-                                                                    <Input type="number" {...field} className="bg-background h-10 rounded-lg border-border/50" />
+                                                                    <Input
+                                                                        type="number"
+                                                                        {...field}
+                                                                        value={field.value ?? ''}
+                                                                        placeholder="Number of nights"
+                                                                        className="bg-background h-10 rounded-lg border-border/50"
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            const nights = val === '' ? undefined : parseInt(val);
+                                                                            field.onChange(nights);
+                                                                            if (nights !== undefined) {
+                                                                                form.setValue('durationDays', nights + 1);
+                                                                            }
+                                                                        }}
+                                                                    />
                                                                 </FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
@@ -743,7 +749,14 @@ export default function PackageForm() {
                                                             <FormItem>
                                                                 <FormLabel className="text-xs font-bold text-muted-foreground">Min People</FormLabel>
                                                                 <FormControl>
-                                                                    <Input type="number" {...field} className="bg-background h-10 rounded-lg border-border/50" />
+                                                                    <Input
+                                                                        type="number"
+                                                                        {...field}
+                                                                        value={field.value ?? ''}
+                                                                        placeholder="Min"
+                                                                        className="bg-background h-10 rounded-lg border-border/50"
+                                                                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                                                    />
                                                                 </FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
@@ -756,7 +769,14 @@ export default function PackageForm() {
                                                             <FormItem>
                                                                 <FormLabel className="text-xs font-bold text-muted-foreground">Max People</FormLabel>
                                                                 <FormControl>
-                                                                    <Input type="number" {...field} className="bg-background h-10 rounded-lg border-border/50" />
+                                                                    <Input
+                                                                        type="number"
+                                                                        {...field}
+                                                                        value={field.value ?? ''}
+                                                                        placeholder="Max"
+                                                                        className="bg-background h-10 rounded-lg border-border/50"
+                                                                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                                                    />
                                                                 </FormControl>
                                                                 <FormMessage />
                                                             </FormItem>
@@ -782,7 +802,14 @@ export default function PackageForm() {
                                                                 <FormControl>
                                                                     <div className="relative">
                                                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">$</span>
-                                                                        <Input type="number" {...field} className="bg-background h-11 rounded-lg border-border/50 pl-8 text-lg font-black" />
+                                                                        <Input
+                                                                            type="number"
+                                                                            {...field}
+                                                                            value={field.value ?? ''}
+                                                                            placeholder="0.00"
+                                                                            className="bg-background h-11 rounded-lg border-border/50 pl-8 text-lg font-black"
+                                                                            onChange={(e) => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                                                                        />
                                                                     </div>
                                                                 </FormControl>
                                                                 <FormMessage />

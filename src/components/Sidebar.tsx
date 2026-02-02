@@ -22,7 +22,14 @@ import {
     Tags,
     LayoutDashboard,
     MapPin,
-    FileSearch
+    FileSearch,
+    PhoneCall,
+    CheckSquare,
+    Search as SearchIcon,
+    UserCheck,
+    DollarSign,
+    TrendingUp,
+    Megaphone
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,6 +45,7 @@ import {
 } from '@/components/animate-ui/components/radix/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ShieldAlert, X as CloseIcon } from 'lucide-react';
 
 interface NavItem {
@@ -54,15 +62,13 @@ interface NavItem {
 
 interface SidebarProps {
     activePage?: string;
-    project?: 'crm' | 'voya-trail';
+    project?: 'crm' | 'voya-trail' | 'telecaller' | 'sales';
 }
 
 const pathToResourceKey: Record<string, string> = {
     '/': 'dashboard',
     '/users': 'manage_users',
     '/data-management': 'data_management',
-    '/human-resource-management': 'hr_portal',
-    '/human-resource-management/recruitment': 'recruitment',
     '/voya-trail': 'voya_trail',
     '/voya-trail/packages': 'voya_trail_packages',
     '/voya-trail/packages/category': 'voya_trail_category',
@@ -70,8 +76,14 @@ const pathToResourceKey: Record<string, string> = {
     '/rbac': 'rbac_system',
     '/rbac/roles': 'rbac_system',
     '/rbac/users': 'rbac_system',
+    '/rbac/departments': 'manage_users',
     '/rbac/logs': 'rbac_system',
-    '/itinerary-builder': 'itinerary_builder',
+    '/sales': 'sales',
+    '/sales/itinerary-builder': 'itinerary_builder',
+    '/sales/telecaller': 'telecaller_panel',
+    '/sales/telecaller/assigned': 'telecaller_assigned',
+    '/telecaller': 'telecaller_panel',
+    '/backups': 'backup_management',
 };
 
 export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
@@ -117,13 +129,21 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     };
 
     const isActive = (item: NavItem) => {
-        if (item.path === '/') return location.pathname === '/';
-        if (item.path === '/voya-trail') return location.pathname === '/voya-trail';
-        if (item.path !== '#' && location.pathname.startsWith(item.path)) return true;
-        if (item.subItems) {
-            return item.subItems.some((sub) => location.pathname === sub.path);
+        const path = item.path;
+        if (path === '#') {
+            if (item.subItems) {
+                return item.subItems.some((sub) => location.pathname === sub.path);
+            }
+            return false;
         }
-        return false;
+
+        // Exact match for root/dashboard paths to avoid highlighting parents when sub-items are active
+        if (path === '/' || path === '/telecaller' || path === '/sales/telecaller' || path === '/sales' || path === '/voya-trail') {
+            return location.pathname === path;
+        }
+
+        // Subpath match for other paths
+        return location.pathname.startsWith(path);
     };
 
     const navItems: NavItem[] = [
@@ -145,30 +165,31 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
         },
     ];
 
+    // Main dashboard module items (new structure)
     const moduleItems = [
         {
-            label: 'Itinerary Builder',
-            icon: <FileText className="h-5 w-5" />,
-            path: '/itinerary-builder',
+            label: 'Sales',
+            icon: <TrendingUp className="h-5 w-5" />,
+            path: '/sales',
         },
         {
-            label: 'HR Portal',
+            label: 'Human Resource',
             icon: <Users className="h-5 w-5" />,
-            path: '/human-resource-management',
+            path: '#',
         },
         {
-            label: 'Recruitment',
-            icon: <Briefcase className="h-5 w-5" />,
-            path: '/human-resource-management/recruitment',
-        },
-        {
-            label: 'Data Management',
+            label: 'Database',
             icon: <Database className="h-5 w-5" />,
             path: '/data-management',
         },
         {
+            label: 'Marketing',
+            icon: <Megaphone className="h-5 w-5" />,
+            path: '#',
+        },
+        {
             label: 'Finance',
-            icon: <CreditCard className="h-5 w-5" />,
+            icon: <DollarSign className="h-5 w-5" />,
             path: '#',
         },
     ];
@@ -181,7 +202,35 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
             subItems: [
                 { label: 'Roles', icon: <Shield className="h-3.5 w-3.5" />, path: '/rbac/roles' },
                 { label: 'Manage Users', icon: <Users className="h-3.5 w-3.5" />, path: '/rbac/users' },
+                { label: 'Departments', icon: <Briefcase className="h-3.5 w-3.5" />, path: '/rbac/departments' },
                 { label: 'Logs', icon: <FileSearch className="h-3.5 w-3.5" />, path: '/rbac/logs' },
+            ],
+        },
+    ];
+
+    const salesItems: NavItem[] = [
+        {
+            label: 'Sales Hub',
+            icon: <TrendingUp className="h-5 w-5" />,
+            path: '/sales',
+        },
+        {
+            label: 'Assigned to Me',
+            icon: <UserCheck className="h-5 w-5" />,
+            path: '/sales/telecaller/assigned',
+        },
+        {
+            label: 'Itinerary Builder',
+            icon: <FileText className="h-5 w-5" />,
+            path: '/sales/itinerary-builder',
+        },
+        {
+            label: 'Telecaller',
+            icon: <PhoneCall className="h-5 w-5" />,
+            path: '#',
+            subItems: [
+                { label: 'Dashboard', icon: <PhoneCall className="h-3.5 w-3.5" />, path: '/sales/telecaller' },
+                { label: 'Destinations', icon: <MapPin className="h-3.5 w-3.5" />, path: '/sales/telecaller/destinations' },
             ],
         },
     ];
@@ -205,10 +254,29 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
         {
             label: 'Blog',
             icon: <FileText className="h-5 w-5" />,
-            path: '#',
+            path: '/voya-trail/blogs',
             subItems: [
+                { label: 'All Blogs', icon: <FileText className="h-3.5 w-3.5" />, path: '/voya-trail/blogs' },
                 { label: 'Category', icon: <Tags className="h-3.5 w-3.5" />, path: '/voya-trail/blog/category' }
             ]
+        },
+    ];
+
+    const telecallerItems: NavItem[] = [
+        {
+            label: 'Dashboard',
+            icon: <PhoneCall className="h-5 w-5" />,
+            path: '/sales/telecaller',
+        },
+        {
+            label: 'Assigned to Me',
+            icon: <UserCheck className="h-5 w-5" />,
+            path: '/sales/telecaller/assigned',
+        },
+        {
+            label: 'Destinations',
+            icon: <MapPin className="h-5 w-5" />,
+            path: '/sales/telecaller/destinations',
         },
     ];
 
@@ -219,7 +287,18 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     };
 
     const filterNavItems = (items: NavItem[]): NavItem[] => {
-        return items;
+        return items.filter(item => {
+            if (item.subItems) {
+                // Keep parent if it has any accessible sub-items
+                const accessibleSubItems = item.subItems.filter(sub => canAccessPath(sub.path));
+                if (accessibleSubItems.length > 0) {
+                    item.subItems = accessibleSubItems;
+                    return true;
+                }
+                return false;
+            }
+            return canAccessPath(item.path);
+        });
     };
 
     const filterModuleItems = (items: typeof moduleItems): typeof moduleItems => {
@@ -238,18 +317,45 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     };
 
     const isRbacPanel = location.pathname.startsWith('/rbac');
+    const isSalesPanel = location.pathname.startsWith('/sales') || project === 'sales';
 
     const currentNavItems = (project === 'voya-trail')
         ? filterNavItems(voyaTrailItems)
-        : isRbacPanel
-            ? []
-            : filterNavItems(navItems);
+        : project === 'telecaller'
+            ? filterNavItems(telecallerItems)
+            : isSalesPanel
+                ? filterNavItems(salesItems)
+                : isRbacPanel
+                    ? []
+                    : filterNavItems(navItems);
 
-    const currentModuleItems = (project === 'voya-trail' || isRbacPanel) ? [] : filterModuleItems(moduleItems);
+    const currentModuleItems = (project === 'voya-trail' || project === 'telecaller' || project === 'sales' || isRbacPanel || isSalesPanel) ? [] : filterModuleItems(moduleItems);
 
-    const currentRbacItems = (project === 'voya-trail' || !isRbacPanel)
+    const currentRbacItems = (project === 'voya-trail' || project === 'telecaller' || project === 'sales' || isSalesPanel || !isRbacPanel)
         ? []
         : filterNavItems(rbacItems);
+
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            // Check if Alt + S was pressed
+            if (event.altKey && event.key.toLowerCase() === 's') {
+                // Don't toggle if the user is typing in an input
+                const target = event.target as HTMLElement;
+                const isTyping =
+                    target.tagName === 'INPUT' ||
+                    target.tagName === 'TEXTAREA' ||
+                    target.isContentEditable;
+
+                if (!isTyping) {
+                    event.preventDefault();
+                    setIsCollapsed(prev => !prev);
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     useEffect(() => {
         const activeMenus: string[] = [];
@@ -283,12 +389,19 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
             className="flex flex-col gap-4 border-r border-border bg-card py-6 flex-shrink-0 hidden lg:flex relative h-screen sticky top-0"
         >
             {/* Collapse Toggle Button */}
-            <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="absolute -right-3 top-12 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground shadow-sm transition-colors"
-            >
-                {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </button>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className="absolute -right-3 top-12 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground shadow-sm transition-colors"
+                    >
+                        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="z-[100]">
+                    <p>{isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} <kbd className="ml-1 px-1 py-0.5 text-[10px] bg-muted rounded">Alt+S</kbd></p>
+                </TooltipContent>
+            </Tooltip>
 
             {/* User Profile Summary */}
             <DropdownMenu>
@@ -345,6 +458,9 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                     <DropdownMenuItem onClick={() => handleNavigate('/rbac', 'RBAC System')} className="cursor-pointer border-0 hover:border-0 focus:border-0 focus:outline-none">
                         RBAC System
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleNavigate('/backups', 'Backups')} className="cursor-pointer border-0 hover:border-0 focus:border-0 focus:outline-none">
+                        Backups
+                    </DropdownMenuItem>
                     <DropdownMenuItem
                         onSelect={(e) => {
                             e.preventDefault();
@@ -357,7 +473,6 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                         onClick={handleLogout}
-                        variant="destructive"
                         className="text-destructive focus:text-destructive cursor-pointer border-0 hover:border-0 focus:border-0 focus:outline-none"
                     >
                         Sign out
@@ -369,30 +484,56 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
             <nav className={cn("flex flex-col gap-2 flex-1 px-4", isCollapsed && "items-center")}>
                 {currentNavItems.map((item) => (
                     <div key={item.label} className="flex flex-col gap-1 w-full">
-                        <button
-                            onClick={() => {
-                                if (item.subItems && !isCollapsed) {
-                                    toggleMenu(item.label);
-                                } else {
-                                    handleNavigate(item.path, item.label);
-                                }
-                            }}
-                            className={cn(
-                                "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
-                                isActive(item)
-                                    ? "bg-primary/10 border-l-2 border-primary"
-                                    : "hover:bg-accent",
-                                isCollapsed && "justify-center px-0 w-10 border-l-0"
-                            )}
-                        >
-                            <div className={cn(
-                                "flex-shrink-0 transition-colors",
-                                isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                            )}>
-                                {item.icon}
-                            </div>
-                            <AnimatePresence mode="wait">
-                                {!isCollapsed && (
+                        {isCollapsed ? (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={() => {
+                                            handleNavigate(item.path, item.label);
+                                        }}
+                                        className={cn(
+                                            "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                            isActive(item)
+                                                ? "bg-primary/10 border-l-2 border-primary"
+                                                : "hover:bg-accent",
+                                            "justify-center px-0 w-10 border-l-0"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "flex-shrink-0 transition-colors",
+                                            isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                        )}>
+                                            {item.icon}
+                                        </div>
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="z-[100]">
+                                    <p>{item.label}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => {
+                                        if (item.subItems && !isCollapsed) {
+                                            toggleMenu(item.label);
+                                        } else {
+                                            handleNavigate(item.path, item.label);
+                                        }
+                                    }}
+                                    className={cn(
+                                        "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                        isActive(item)
+                                            ? "bg-primary/10 border-l-2 border-primary"
+                                            : "hover:bg-accent"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "flex-shrink-0 transition-colors",
+                                        isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                    )}>
+                                        {item.icon}
+                                    </div>
                                     <motion.div
                                         key={`${item.label}-label`}
                                         initial={{ opacity: 0, x: -10 }}
@@ -416,153 +557,9 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                             <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", expandedMenus.includes(item.label) ? "rotate-180" : "")} />
                                         )}
                                     </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </button>
-                        <AnimatePresence>
-                            {!isCollapsed && item.subItems && expandedMenus.includes(item.label) && (
-                                <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="overflow-hidden flex flex-col pl-9 gap-1"
-                                >
-                                    {item.subItems.map((subItem) => (
-                                        <button
-                                            key={subItem.label}
-                                            onClick={() => handleNavigate(subItem.path, subItem.label)}
-                                            className={cn(
-                                                "text-sm py-2 text-left flex items-center gap-2 transition-colors",
-                                                location.pathname === subItem.path
-                                                    ? "text-primary font-medium"
-                                                    : "text-muted-foreground hover:text-foreground"
-                                            )}
-                                        >
-                                            {subItem.icon}
-                                            {subItem.label}
-                                        </button>
-                                    ))}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-                ))}
-
-                {currentModuleItems.length > 0 && (
-                    <>
-                        <div className="my-2 border-t border-border/50 w-full"></div>
-                        {!isCollapsed && (
-                            <motion.p
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap"
-                            >
-                                Modules
-                            </motion.p>
-                        )}
-
-                        {currentModuleItems.map((item) => (
-                            <button
-                                key={item.label}
-                                onClick={() => handleNavigate(item.path, item.label)}
-                                className={cn(
-                                    "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
-                                    isActive(item)
-                                        ? "bg-primary/10 border-l-2 border-primary"
-                                        : "hover:bg-accent",
-                                    isCollapsed && "justify-center px-0 w-10 border-l-0"
-                                )}
-                            >
-                                <div className={cn(
-                                    "flex-shrink-0 transition-colors",
-                                    isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                                )}>
-                                    {item.icon}
-                                </div>
-                                <AnimatePresence mode="wait">
-                                    {!isCollapsed && (
-                                        <motion.p
-                                            key={`${item.label}-label`}
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -10 }}
-                                            transition={{ duration: 0.2 }}
-                                            className={cn(
-                                                "text-sm font-medium leading-normal whitespace-nowrap",
-                                                isActive(item) ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
-                                            )}
-                                        >
-                                            {item.label}
-                                        </motion.p>
-                                    )}
-                                </AnimatePresence>
-                            </button>
-                        ))}
-                    </>
-                )}
-
-                {currentRbacItems.length > 0 && (
-                    <>
-                        <div className="my-2 border-t border-border/50 w-full"></div>
-                        {!isCollapsed && (
-                            <motion.p
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap"
-                            >
-                                RBAC
-                            </motion.p>
-                        )}
-
-                        {currentRbacItems.map((item) => (
-                            <div key={item.label} className="flex flex-col gap-1 w-full">
-                                <button
-                                    onClick={() => {
-                                        if (item.subItems && !isCollapsed) {
-                                            toggleMenu(item.label);
-                                        } else {
-                                            handleNavigate(item.path, item.label);
-                                        }
-                                    }}
-                                    className={cn(
-                                        "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
-                                        isActive(item)
-                                            ? "bg-primary/10 border-l-2 border-primary"
-                                            : "hover:bg-accent",
-                                        isCollapsed && "justify-center px-0 w-10 border-l-0"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "flex-shrink-0 transition-colors",
-                                        isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                                    )}>
-                                        {item.icon}
-                                    </div>
-                                    <AnimatePresence mode="wait">
-                                        {!isCollapsed && (
-                                            <motion.div
-                                                key={`${item.label}-label`}
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                exit={{ opacity: 0, x: -10 }}
-                                                transition={{ duration: 0.2 }}
-                                                className="flex items-center flex-1 overflow-hidden"
-                                            >
-                                                <p className={cn(
-                                                    "text-sm font-medium leading-normal whitespace-nowrap",
-                                                    isActive(item) ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
-                                                )}>
-                                                    {item.label}
-                                                </p>
-                                                {item.subItems && (
-                                                    <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", expandedMenus.includes(item.label) ? "rotate-180" : "")} />
-                                                )}
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
                                 </button>
                                 <AnimatePresence>
-                                    {!isCollapsed && item.subItems && expandedMenus.includes(item.label) && (
+                                    {item.subItems && expandedMenus.includes(item.label) && (
                                         <motion.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: 'auto', opacity: 1 }}
@@ -587,6 +584,198 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
+                            </>
+                        )}
+                    </div>
+                ))}
+
+                {currentModuleItems.length > 0 && (
+                    <>
+                        <div className="my-2 border-t border-border/50 w-full"></div>
+                        {!isCollapsed && (
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap"
+                            >
+                                Modules
+                            </motion.p>
+                        )}
+
+                        {currentModuleItems.map((item) => (
+                            isCollapsed ? (
+                                <Tooltip key={item.label}>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={() => handleNavigate(item.path, item.label)}
+                                            className={cn(
+                                                "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                                isActive(item)
+                                                    ? "bg-primary/10 border-l-2 border-primary"
+                                                    : "hover:bg-accent",
+                                                "justify-center px-0 w-10 border-l-0"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "flex-shrink-0 transition-colors",
+                                                isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                            )}>
+                                                {item.icon}
+                                            </div>
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right" className="z-[100]">
+                                        <p>{item.label}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : (
+                                <button
+                                    key={item.label}
+                                    onClick={() => handleNavigate(item.path, item.label)}
+                                    className={cn(
+                                        "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                        isActive(item)
+                                            ? "bg-primary/10 border-l-2 border-primary"
+                                            : "hover:bg-accent"
+                                    )}
+                                >
+                                    <div className={cn(
+                                        "flex-shrink-0 transition-colors",
+                                        isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                    )}>
+                                        {item.icon}
+                                    </div>
+                                    <motion.p
+                                        key={`${item.label}-label`}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -10 }}
+                                        transition={{ duration: 0.2 }}
+                                        className={cn(
+                                            "text-sm font-medium leading-normal whitespace-nowrap",
+                                            isActive(item) ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                                        )}
+                                    >
+                                        {item.label}
+                                    </motion.p>
+                                </button>
+                            )
+                        ))}
+                    </>
+                )}
+
+                {currentRbacItems.length > 0 && (
+                    <>
+                        <div className="my-2 border-t border-border/50 w-full"></div>
+                        {!isCollapsed && (
+                            <motion.p
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap"
+                            >
+                                RBAC
+                            </motion.p>
+                        )}
+
+                        {currentRbacItems.map((item) => (
+                            <div key={item.label} className="flex flex-col gap-1 w-full">
+                                {isCollapsed ? (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                onClick={() => {
+                                                    handleNavigate(item.path, item.label);
+                                                }}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                                    isActive(item)
+                                                        ? "bg-primary/10 border-l-2 border-primary"
+                                                        : "hover:bg-accent",
+                                                    "justify-center px-0 w-10 border-l-0"
+                                                )}
+                                            >
+                                                <div className={cn(
+                                                    "flex-shrink-0 transition-colors",
+                                                    isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                                )}>
+                                                    {item.icon}
+                                                </div>
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right" className="z-[100]">
+                                            <p>{item.label}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                ) : (
+                                    <>
+                                        <button
+                                            onClick={() => {
+                                                if (item.subItems && !isCollapsed) {
+                                                    toggleMenu(item.label);
+                                                } else {
+                                                    handleNavigate(item.path, item.label);
+                                                }
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                                isActive(item)
+                                                    ? "bg-primary/10 border-l-2 border-primary"
+                                                    : "hover:bg-accent"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "flex-shrink-0 transition-colors",
+                                                isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                            )}>
+                                                {item.icon}
+                                            </div>
+                                            <motion.div
+                                                key={`${item.label}-label`}
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -10 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="flex items-center flex-1 overflow-hidden"
+                                            >
+                                                <p className={cn(
+                                                    "text-sm font-medium leading-normal whitespace-nowrap",
+                                                    isActive(item) ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                                                )}>
+                                                    {item.label}
+                                                </p>
+                                                {item.subItems && (
+                                                    <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", expandedMenus.includes(item.label) ? "rotate-180" : "")} />
+                                                )}
+                                            </motion.div>
+                                        </button>
+                                        <AnimatePresence>
+                                            {item.subItems && expandedMenus.includes(item.label) && (
+                                                <motion.div
+                                                    initial={{ height: 0, opacity: 0 }}
+                                                    animate={{ height: 'auto', opacity: 1 }}
+                                                    exit={{ height: 0, opacity: 0 }}
+                                                    className="overflow-hidden flex flex-col pl-9 gap-1"
+                                                >
+                                                    {item.subItems.map((subItem) => (
+                                                        <button
+                                                            key={subItem.label}
+                                                            onClick={() => handleNavigate(subItem.path, subItem.label)}
+                                                            className={cn(
+                                                                "text-sm py-2 text-left flex items-center gap-2 transition-colors",
+                                                                location.pathname === subItem.path
+                                                                    ? "text-primary font-medium"
+                                                                    : "text-muted-foreground hover:text-foreground"
+                                                            )}
+                                                        >
+                                                            {subItem.icon}
+                                                            {subItem.label}
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </>
+                                )}
                             </div>
                         ))}
                     </>

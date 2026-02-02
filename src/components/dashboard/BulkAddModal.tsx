@@ -300,9 +300,8 @@ export function BulkAddModal({ isOpen, onClose, sources, onSave }: BulkAddModalP
                             value={entry.email}
                             onChange={(e) => updateEntry(entry.id, 'email', e.target.value)}
                             placeholder="Email"
-                            className={`h-8 border-border bg-background ${
-                              entry.errors.email ? 'border-destructive' : ''
-                            }`}
+                            className={`h-8 border-border bg-background ${entry.errors.email ? 'border-destructive' : ''
+                              }`}
                           />
                           {entry.errors.email && (
                             <p className="text-xs text-destructive mt-0.5">{entry.errors.email}</p>
@@ -325,13 +324,12 @@ export function BulkAddModal({ isOpen, onClose, sources, onSave }: BulkAddModalP
                             onValueChange={(value) => updateEntry(entry.id, 'source', value)}
                           >
                             <SelectTrigger
-                              className={`h-8 border-border bg-background ${
-                                entry.errors.source ? 'border-destructive' : ''
-                              }`}
+                              className={`h-8 border-border bg-background ${entry.errors.source ? 'border-destructive' : ''
+                                }`}
                             >
                               <SelectValue placeholder="Select" />
                             </SelectTrigger>
-                            <SelectContent className="z-[110]">
+                            <SelectContent>
                               {sources.map((source) => (
                                 <SelectItem key={source} value={source}>
                                   {source}

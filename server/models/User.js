@@ -35,6 +35,11 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  departmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Department',
+    default: null,
+  },
   themePreference: {
     type: String,
     enum: ['light', 'dark', 'system'],

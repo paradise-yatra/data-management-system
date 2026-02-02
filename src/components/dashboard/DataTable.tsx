@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { LeadRecord } from '@/types/record';
 
 interface DataTableProps {
@@ -25,10 +26,10 @@ interface DataTableProps {
 
 const RECORDS_PER_PAGE = 10;
 
-export function DataTable({ 
-  records, 
-  onEdit, 
-  onDelete, 
+export function DataTable({
+  records,
+  onEdit,
+  onDelete,
   onView,
   selectedRecords = [],
   onSelectionChange,
@@ -64,7 +65,7 @@ export function DataTable({
     }
   };
 
-  const isAllSelected = paginatedRecords.length > 0 && 
+  const isAllSelected = paginatedRecords.length > 0 &&
     paginatedRecords.every((r) => selectedRecords.includes(r._id || r.id || ''));
 
   const isSomeSelected = paginatedRecords.some((r) => selectedRecords.includes(r._id || r.id || ''));
@@ -77,16 +78,16 @@ export function DataTable({
       } else {
         date = new Date(dateString + 'T00:00:00+05:30');
       }
-      
+
       return date.toLocaleString('en-IN', {
         timeZone: 'Asia/Kolkata',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
         hour12: true,
-    });
+      });
     } catch (error) {
       return dateString;
     }
@@ -149,9 +150,8 @@ export function DataTable({
                     exit={{ opacity: 0, x: 10 }}
                     transition={{ delay: index * 0.03 }}
                     onClick={() => onView(record)}
-                    className={`border-border transition-colors hover:bg-muted/30 cursor-pointer ${
-                      selectedRecords.includes(record._id || record.id || '') ? 'bg-muted/50' : ''
-                    }`}
+                    className={`border-border transition-colors hover:bg-muted/30 cursor-pointer ${selectedRecords.includes(record._id || record.id || '') ? 'bg-muted/50' : ''
+                      }`}
                   >
                     {onSelectionChange && (
                       <TableCell onClick={(e) => e.stopPropagation()}>
@@ -207,7 +207,7 @@ export function DataTable({
                                 {hasMore && (
                                   <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">
                                     ...
-                      </span>
+                                  </span>
                                 )}
                               </>
                             );
@@ -225,22 +225,32 @@ export function DataTable({
                     </TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onEdit(record)}
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => onDelete(record)}
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onEdit(record)}
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit record</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => onDelete(record)}
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete record</TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </motion.tr>

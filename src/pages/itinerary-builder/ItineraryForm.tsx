@@ -27,10 +27,10 @@ export const ItineraryForm = () => {
   const [destinations, setDestinations] = useState<string[]>([]);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
-  const [nights, setNights] = useState(1);
-  const [rooms, setRooms] = useState(1);
+  const [adults, setAdults] = useState<number | undefined>(undefined);
+  const [children, setChildren] = useState<number | undefined>(undefined);
+  const [nights, setNights] = useState<number | undefined>(undefined);
+  const [rooms, setRooms] = useState<number | undefined>(undefined);
   const [days, setDays] = useState<Day[]>([]);
   const [markupPercentage, setMarkupPercentage] = useState<number | null>(null);
   const [isCustomMarkup, setIsCustomMarkup] = useState(false);
@@ -86,7 +86,7 @@ export const ItineraryForm = () => {
   // Calculate nights from dates (only for new itineraries)
   useEffect(() => {
     if (isEdit) return; // Don't auto-calculate for existing itineraries
-    
+
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
@@ -105,14 +105,14 @@ export const ItineraryForm = () => {
   useEffect(() => {
     // Only run for new itineraries (not when editing existing)
     if (isEdit) return;
-    
+
     if (nights > 0) {
       setDays((prevDays) => {
         // If days already match nights, don't update
         if (prevDays.length === nights) {
           return prevDays;
         }
-        
+
         const newDays: Day[] = [];
         for (let i = 1; i <= nights; i++) {
           const existingDay = prevDays.find((d) => d.dayNumber === i);
@@ -123,8 +123,8 @@ export const ItineraryForm = () => {
               dayNumber: i,
               date: startDate
                 ? new Date(new Date(startDate).getTime() + (i - 1) * 24 * 60 * 60 * 1000)
-                    .toISOString()
-                    .split('T')[0]
+                  .toISOString()
+                  .split('T')[0]
                 : null,
               activities: [],
               transfers: [],
@@ -142,16 +142,16 @@ export const ItineraryForm = () => {
   // Calculate pricing
   const { pricing, isCalculating } = usePricingCalculation({
     days,
-    pax: { adults, children, total: adults + children },
-    nights,
-    rooms,
+    pax: { adults: adults || 1, children: children || 0, total: (adults || 1) + (children || 0) },
+    nights: nights || 1,
+    rooms: rooms || 1,
     markupPercentage: markupPercentage || 0,
   });
 
   // Create/Update mutation
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const itineraryData = {
+      const payload: any = {
         clientName,
         clientEmail,
         clientPhone,
@@ -161,19 +161,21 @@ export const ItineraryForm = () => {
           endDate: new Date(endDate).toISOString(),
         },
         pax: {
-          adults,
-          children,
+          adults: adults || 1,
+          children: children || 0,
+          total: (adults || 1) + (children || 0),
         },
-        nights,
-        rooms,
+        nights: nights || 1,
+        rooms: rooms || 1,
         days,
         markupPercentage: isCustomMarkup ? markupPercentage : undefined,
+        status: itineraryData?.data?.status || 'draft',
       };
 
       if (isEdit && id) {
-        return itinerariesAPI.update(id, itineraryData);
+        return itinerariesAPI.update(id, payload);
       } else {
-        return itinerariesAPI.create(itineraryData);
+        return itinerariesAPI.create(payload);
       }
     },
     onSuccess: (data) => {
@@ -219,7 +221,7 @@ export const ItineraryForm = () => {
     );
   };
 
-  const isLocked = itineraryData?.data?.lockedAt || ['sent', 'confirmed'].includes(itineraryData?.data?.status || '');
+  const isLocked = !!itineraryData?.data?.lockedAt || ['sent', 'confirmed'].includes(itineraryData?.data?.status || '');
 
   if (isLoadingItinerary && isEdit) {
     return <div className="container mx-auto p-6">Loading...</div>;
@@ -348,9 +350,10 @@ export const ItineraryForm = () => {
                     id="adults"
                     type="number"
                     min="1"
-                    value={adults}
-                    onChange={(e) => setAdults(parseInt(e.target.value) || 1)}
+                    value={adults ?? ''}
+                    onChange={(e) => setAdults(parseInt(e.target.value) || undefined)}
                     disabled={isLocked}
+                    placeholder="Enter guests"
                   />
                 </div>
                 <div className="space-y-2">
@@ -359,20 +362,27 @@ export const ItineraryForm = () => {
                     id="children"
                     type="number"
                     min="0"
-                    value={children}
+                    value={children ?? ''}
                     onChange={(e) => setChildren(parseInt(e.target.value) || 0)}
                     disabled={isLocked}
+                    placeholder="0"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="nights">Nights *</Label>
+                  <div className="flex justify-between items-center mb-1">
+                    <Label htmlFor="nights">Nights *</Label>
+                    <Badge variant="secondary" className="text-[10px] font-bold bg-primary/10 text-primary border-primary/20">
+                      {(nights || 0) + 1} Days
+                    </Badge>
+                  </div>
                   <Input
                     id="nights"
                     type="number"
                     min="1"
-                    value={nights}
-                    onChange={(e) => setNights(parseInt(e.target.value) || 1)}
+                    value={nights ?? ''}
+                    onChange={(e) => setNights(parseInt(e.target.value) || undefined)}
                     disabled={isLocked}
+                    placeholder="Enter nights"
                   />
                 </div>
                 <div className="space-y-2">
@@ -381,9 +391,10 @@ export const ItineraryForm = () => {
                     id="rooms"
                     type="number"
                     min="1"
-                    value={rooms}
-                    onChange={(e) => setRooms(parseInt(e.target.value) || 1)}
+                    value={rooms ?? ''}
+                    onChange={(e) => setRooms(parseInt(e.target.value) || undefined)}
                     disabled={isLocked}
+                    placeholder="Enter rooms"
                   />
                 </div>
               </div>

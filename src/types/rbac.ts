@@ -5,6 +5,9 @@ export interface Resource {
   label: string;
   path: string;
   description?: string;
+  category?: string;
+  subCategory?: string;
+  isToggle?: boolean;
 }
 
 export interface Permission {

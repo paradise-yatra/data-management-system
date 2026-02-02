@@ -12,7 +12,9 @@ router.use(authenticateToken);
 // GET /api/users - List all users (manage_users view)
 router.get('/', requirePermission('manage_users', 'view'), async (req, res) => {
   try {
-    const users = await User.find().sort({ createdAt: -1 });
+    const users = await User.find()
+      .populate('departmentId', 'name')
+      .sort({ createdAt: -1 });
     res.json(users);
   } catch (error) {
     console.error('Get users error:', error);
@@ -23,7 +25,8 @@ router.get('/', requirePermission('manage_users', 'view'), async (req, res) => {
 // GET /api/users/:id - Get a single user (manage_users view)
 router.get('/:id', requirePermission('manage_users', 'view'), async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id)
+      .populate('departmentId', 'name');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -37,7 +40,7 @@ router.get('/:id', requirePermission('manage_users', 'view'), async (req, res) =
 // POST /api/users - Create a new user (manage_users full)
 router.post('/', requirePermission('manage_users', 'full'), async (req, res) => {
   try {
-    const { email, password, name, role, roleId } = req.body;
+    const { email, password, name, role, roleId, departmentId } = req.body;
 
     // Validate input
     if (!email || !password || !name) {
@@ -71,16 +74,17 @@ router.post('/', requirePermission('manage_users', 'full'), async (req, res) => 
       name: name.trim(),
       role: legacyRole,
       roleId: resolvedRoleId,
+      departmentId: departmentId || null,
     });
 
     await user.save();
-    
+
     await createLog('create_user', req, {
       email: user.email,
       name: user.name,
       role: user.role,
     });
-    
+
     res.status(201).json(user);
   } catch (error) {
     console.error('Create user error:', error);
@@ -98,7 +102,7 @@ router.post('/', requirePermission('manage_users', 'full'), async (req, res) => 
 // PUT /api/users/:id - Update a user (manage_users full)
 router.put('/:id', requirePermission('manage_users', 'full'), async (req, res) => {
   try {
-    const { email, name, role, roleId, isActive, password } = req.body;
+    const { email, name, role, roleId, isActive, password, departmentId } = req.body;
     const userId = req.params.id;
 
     const user = await User.findById(userId);
@@ -137,9 +141,10 @@ router.put('/:id', requirePermission('manage_users', 'full'), async (req, res) =
     }
     if (typeof isActive === 'boolean') user.isActive = isActive;
     if (passwordChanged) user.password = password;
+    if (typeof departmentId !== 'undefined') user.departmentId = departmentId || null;
 
     await user.save();
-    
+
     // Log activation/deactivation
     if (typeof isActive === 'boolean' && isActive !== originalIsActive) {
       if (isActive) {
@@ -154,7 +159,7 @@ router.put('/:id', requirePermission('manage_users', 'full'), async (req, res) =
         });
       }
     }
-    
+
     // Log password change
     if (passwordChanged) {
       await createLog('change_user_password', req, {
@@ -162,7 +167,7 @@ router.put('/:id', requirePermission('manage_users', 'full'), async (req, res) =
         name: user.name,
       });
     }
-    
+
     res.json(user);
   } catch (error) {
     console.error('Update user error:', error);

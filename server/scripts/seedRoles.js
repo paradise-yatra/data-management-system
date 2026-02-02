@@ -22,6 +22,10 @@ const defaultPermissionsForManager = [
   { resourceKey: 'voya_trail_package_form', accessLevel: 'full' },
   { resourceKey: 'manage_users', accessLevel: 'view' },
   { resourceKey: 'rbac_system', accessLevel: 'none' },
+  { resourceKey: 'sales', accessLevel: 'full' },
+  { resourceKey: 'telecaller_panel', accessLevel: 'full' },
+  { resourceKey: 'telecaller_assigned', accessLevel: 'full' },
+  { resourceKey: 'telecaller_transfer', accessLevel: 'full' },
 ];
 
 const defaultPermissionsForUser = [
@@ -36,6 +40,10 @@ const defaultPermissionsForUser = [
   { resourceKey: 'voya_trail_package_form', accessLevel: 'none' },
   { resourceKey: 'manage_users', accessLevel: 'none' },
   { resourceKey: 'rbac_system', accessLevel: 'none' },
+  { resourceKey: 'sales', accessLevel: 'view' },
+  { resourceKey: 'telecaller_panel', accessLevel: 'view' },
+  { resourceKey: 'telecaller_assigned', accessLevel: 'view' },
+  { resourceKey: 'telecaller_transfer', accessLevel: 'none' },
 ];
 
 async function seedRoles() {

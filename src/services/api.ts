@@ -1,4 +1,5 @@
 import { LeadRecord } from '@/types/record';
+import { TelecallerLeadRecord, TelecallerTrashRecord } from '@/types/telecaller';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 console.log('API_BASE_URL:', API_BASE_URL);
@@ -33,7 +34,20 @@ export interface UserRecord {
   name: string;
   role: 'admin' | 'manager' | 'user';
   roleId?: string | null;
+  departmentId?: string | { _id: string; name: string } | null;
   isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Department type for API
+export interface Department {
+  _id: string;
+  name: string;
+  description?: string;
+  head?: { _id: string; name: string; email: string } | null;
+  isActive: boolean;
+  memberCount?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -249,7 +263,7 @@ export const usersAPI = {
 
   // Create a new user (role or roleId)
   create: async (
-    data: { email: string; password: string; name: string; role?: string; roleId?: string | null }
+    data: { email: string; password: string; name: string; role?: string; roleId?: string | null; departmentId?: string | null }
   ): Promise<UserRecord> => {
     const response = await fetch(`${API_BASE_URL}/users`, {
       method: 'POST',
@@ -268,7 +282,7 @@ export const usersAPI = {
   // Update a user (role or roleId)
   update: async (
     id: string,
-    data: Partial<{ email: string; name: string; role: string; roleId: string | null; isActive: boolean; password: string }>
+    data: Partial<{ email: string; name: string; role: string; roleId: string | null; departmentId: string | null; isActive: boolean; password: string }>
   ): Promise<UserRecord> => {
     const response = await fetch(`${API_BASE_URL}/users/${id}`, {
       method: 'PUT',
@@ -315,6 +329,135 @@ export const usersAPI = {
       throw new Error(error.error || 'Failed to change user role');
     }
     return response.json();
+  },
+};
+
+// Departments API
+export const departmentsAPI = {
+  // Get all departments
+  getAll: async (): Promise<Department[]> => {
+    const response = await fetch(`${API_BASE_URL}/departments`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch departments');
+    }
+    return response.json();
+  },
+
+  // Get a single department with members
+  getById: async (id: string): Promise<Department & { members: UserRecord[] }> => {
+    const response = await fetch(`${API_BASE_URL}/departments/${id}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch department');
+    }
+    return response.json();
+  },
+
+  // Create a new department
+  create: async (data: { name: string; description?: string; head?: string | null; isActive?: boolean }): Promise<Department> => {
+    const response = await fetch(`${API_BASE_URL}/departments`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create department');
+    }
+    return response.json();
+  },
+
+  // Update a department
+  update: async (id: string, data: Partial<{ name: string; description: string; head: string | null; isActive: boolean }>): Promise<Department> => {
+    const response = await fetch(`${API_BASE_URL}/departments/${id}`, {
+      method: 'PUT',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update department');
+    }
+    return response.json();
+  },
+
+  // Delete a department
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/departments/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete department');
+    }
+  },
+
+  // Get members of a department
+  getMembers: async (id: string): Promise<UserRecord[]> => {
+    const response = await fetch(`${API_BASE_URL}/departments/${id}/members`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch department members');
+    }
+    return response.json();
+  },
+
+  // Add user to department
+  addMember: async (departmentId: string, userId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/departments/${departmentId}/members`, {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ userId }),
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to add user to department');
+    }
+  },
+
+  // Remove user from department
+  removeMember: async (departmentId: string, userId: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/departments/${departmentId}/members/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to remove user from department');
+    }
   },
 };
 
@@ -1226,4 +1369,212 @@ export const destinationsAPI = {
     }
     await response.json();
   },
+};
+
+// Telecaller API
+export const telecallerAPI = {
+  // Get all leads
+  getAll: async (): Promise<TelecallerLeadRecord[]> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-leads`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch telecaller leads');
+    }
+    return response.json();
+  },
+
+  // Create a new lead
+  create: async (data: Omit<TelecallerLeadRecord, '_id' | 'uniqueId'>): Promise<TelecallerLeadRecord> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-leads`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create telecaller lead');
+    }
+    return response.json();
+  },
+
+  // Update a lead
+  update: async (id: string, data: Partial<TelecallerLeadRecord>): Promise<TelecallerLeadRecord> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-leads/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update telecaller lead');
+    }
+    return response.json();
+  },
+
+  // Transfer a lead
+  transfer: async (id: string, userId: string): Promise<TelecallerLeadRecord> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-leads/${id}/transfer`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ userId }),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to transfer lead');
+    }
+    return response.json();
+  },
+
+  // Delete a lead
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-leads/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete telecaller lead');
+    }
+  },
+
+  // Get sources specific to telecalling
+  getSources: async (): Promise<{ _id: string, name: string }[]> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-sources`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch telecaller sources');
+    }
+    return response.json();
+  },
+
+  // Get destinations specific to telecalling
+  getDestinations: async (): Promise<{ _id: string, name: string }[]> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-destinations`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch telecaller destinations');
+    }
+    return response.json();
+  },
+
+  // Create a destination specific to telecalling
+  createDestination: async (data: { name: string }): Promise<{ _id: string, name: string }> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-destinations`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create telecaller destination');
+    }
+    return response.json();
+  },
+
+  // Delete a destination specific to telecalling
+  deleteDestination: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-destinations/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete telecaller destination');
+    }
+  },
+
+  // Get logs
+  getLogs: async (filters: {
+    startDate?: string,
+    endDate?: string,
+    userId?: string,
+    action?: string,
+    page?: number,
+    limit?: number
+  }): Promise<{ data: any[], pagination: any }> => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.append(key, value.toString());
+      }
+    });
+
+    const response = await fetch(`${API_BASE_URL}/telecaller-logs?${params.toString()}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch logs');
+    }
+    return response.json();
+  },
+};
+
+// Telecaller Trash API
+export const telecallerTrashAPI = {
+  // Get all trash items
+  getAll: async (): Promise<TelecallerTrashRecord[]> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-trash`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch trash items');
+    }
+    return response.json();
+  },
+
+  // Restore a lead
+  restore: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-trash/restore/${id}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to restore lead');
+    }
+    return response.json();
+  },
+
+  // Permanently delete a lead
+  deleteForever: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-trash/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete lead permanently');
+    }
+    return response.json();
+  }
 };

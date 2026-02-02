@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -97,26 +98,21 @@ export default function RBACPage() {
   );
 }
 
-// Helper to group resources
+// Helper to group resources by Category -> SubCategory
 const groupResources = (resources: Resource[]) => {
-  const groups: Record<string, Resource[]> = {
-    'General': [],
-    'CRM & Data': [],
-    'HR Portal': [],
-    'Voya Trail': [],
-    'System': []
-  };
+  const groups: Record<string, Record<string, Resource[]>> = {};
 
   resources.forEach(res => {
-    if (res.key.startsWith('voya_trail')) groups['Voya Trail'].push(res);
-    else if (res.key.startsWith('hr_') || res.key === 'recruitment') groups['HR Portal'].push(res);
-    else if (res.key === 'data_management') groups['CRM & Data'].push(res);
-    else if (['manage_users', 'rbac_system'].includes(res.key)) groups['System'].push(res);
-    else groups['General'].push(res);
+    const category = res.category || 'General';
+    const subCategory = res.subCategory || 'Direct';
+
+    if (!groups[category]) groups[category] = {};
+    if (!groups[category][subCategory]) groups[category][subCategory] = [];
+
+    groups[category][subCategory].push(res);
   });
 
-  // Filter out empty groups and return as array
-  return Object.entries(groups).filter(([_, items]) => items.length > 0);
+  return Object.entries(groups);
 };
 
 // Reusable Permissions Editor Component
@@ -134,13 +130,13 @@ const PermissionsEditor = ({
   return (
     <div className="space-y-4">
       <Accordion type="multiple" className="w-full space-y-4">
-        {grouped.map(([groupName, groupResources]) => (
+        {grouped.map(([groupName, subCategories]) => (
           <AccordionItem value={groupName} key={groupName} className="border border-border rounded-lg bg-card overflow-hidden">
             <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-lg">{groupName}</span>
                 <Badge variant="secondary" className="ml-2 bg-muted-foreground/10 text-muted-foreground hover:bg-muted-foreground/20">
-                  {groupResources.length} resources
+                  {Object.values(subCategories).reduce((acc, curr) => acc + curr.length, 0)} resources
                 </Badge>
               </div>
             </AccordionTrigger>
@@ -163,59 +159,82 @@ const PermissionsEditor = ({
                   </div>
                 </div>
 
-                {/* Resource Rows */}
+                {/* Subcategories & Resources */}
                 <div className="divide-y divide-border">
-                  {groupResources.map((res) => (
-                    <div key={res.key} className="grid grid-cols-[1.5fr,repeat(4,100px)] gap-4 px-4 py-3 items-center hover:bg-muted/20 transition-colors">
-                      <div className="flex flex-col gap-0.5 px-2">
-                        <div className="font-medium text-sm flex items-center gap-2">
-                          {res.label}
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Info className="h-3 w-3 text-muted-foreground/50 cursor-pointer hover:text-primary" />
-                            </TooltipTrigger>
-                            <TooltipContent side="right">
-                              <p>{res.description}</p>
-                            </TooltipContent>
-                          </Tooltip>
+                  {Object.entries(subCategories).map(([subName, items]) => (
+                    <div key={subName}>
+                      {subName !== 'Direct' && subName !== '_root' && (
+                        <div className="px-4 py-2 bg-muted/20 text-sm font-semibold text-foreground/80 border-b border-border/50">
+                          {subName}
                         </div>
-                        <span className="text-xs text-muted-foreground line-clamp-1">{res.description}</span>
-                      </div>
-
-                      <RadioGroup
-                        value={permissions[res.key] ?? 'none'}
-                        onValueChange={(v) => onChange(res.key, v as AccessLevel)}
-                        className="contents" // Use contents to let children participate in the grid
-                      >
-                        {[
-                          { value: 'none', color: 'text-muted-foreground' },
-                          { value: 'view', color: 'text-blue-500' },
-                          { value: 'edit', color: 'text-amber-500' },
-                          { value: 'full', color: 'text-destructive' }
-                        ].map((option) => (
-                          <div key={option.value} className="flex justify-center">
-                            <div className="relative flex items-center justify-center">
-                              <RadioGroupItem
-                                value={option.value}
-                                id={`${res.key}-${option.value}`}
-                                className={`peer sr-only`} // Hide default radio
-                              />
-                              <Label
-                                htmlFor={`${res.key}-${option.value}`}
-                                className={`
-                                  h-5 w-5 rounded-full border border-muted-foreground/30 cursor-pointer 
-                                  peer-focus:ring-2 peer-focus:ring-ring peer-focus:ring-offset-2
-                                  hover:border-primary hover:bg-primary/5 transition-all
-                                  peer-data-[state=checked]:bg-primary peer-data-[state=checked]:border-primary
-                                  flex items-center justify-center
-                                `}
-                              >
-                                <CheckCircle2 className="h-3 w-3 text-primary-foreground opacity-0 peer-data-[state=checked]:opacity-100 transition-opacity" />
-                              </Label>
+                      )}
+                      {items.map((res) => (
+                        <div key={res.key} className="grid grid-cols-[1.5fr,repeat(4,100px)] gap-4 px-4 py-3 items-center hover:bg-muted/20 transition-colors">
+                          <div className={`flex flex-col gap-0.5 px-2 ${subName !== 'Direct' ? 'pl-6' : ''}`}>
+                            <div className="font-medium text-sm flex items-center gap-2">
+                              {res.label}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 text-muted-foreground/50 cursor-pointer hover:text-primary" />
+                                </TooltipTrigger>
+                                <TooltipContent side="right">
+                                  <p>{res.description}</p>
+                                </TooltipContent>
+                              </Tooltip>
                             </div>
+                            <span className="text-xs text-muted-foreground line-clamp-1">{res.description}</span>
                           </div>
-                        ))}
-                      </RadioGroup>
+
+                          {res.isToggle ? (
+                            <div className="contents">
+                              <div className="col-span-4 flex items-center justify-center gap-3">
+                                <span className={`text-xs font-medium ${permissions[res.key] === 'view' ? 'text-primary' : 'text-muted-foreground'}`}>
+                                  {permissions[res.key] === 'view' ? 'Visible' : 'Hidden'}
+                                </span>
+                                <Switch
+                                  checked={permissions[res.key] === 'view'}
+                                  onCheckedChange={(checked) => onChange(res.key, checked ? 'view' : 'none')}
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <RadioGroup
+                              value={permissions[res.key] ?? 'none'}
+                              onValueChange={(v) => onChange(res.key, v as AccessLevel)}
+                              className="contents"
+                            >
+                              {[
+                                { value: 'none', color: 'text-muted-foreground' },
+                                { value: 'view', color: 'text-blue-500' },
+                                { value: 'edit', color: 'text-amber-500' },
+                                { value: 'full', color: 'text-destructive' }
+                              ].map((option) => (
+                                <div key={option.value} className="flex justify-center">
+                                  <div className="relative flex items-center justify-center">
+                                    <RadioGroupItem
+                                      value={option.value}
+                                      id={`${res.key}-${option.value}`}
+                                      className={`peer sr-only`}
+                                    />
+                                    <Label
+                                      htmlFor={`${res.key}-${option.value}`}
+                                      className={`
+                                        h-5 w-5 rounded-full border border-muted-foreground/30 cursor-pointer 
+                                        peer-focus:ring-2 peer-focus:ring-ring peer-focus:ring-offset-2
+                                        hover:border-primary hover:bg-primary/5 transition-all
+                                        peer-data-[state=checked]:bg-primary peer-data-[state=checked]:border-primary
+                                        flex items-center justify-center
+                                      `}
+                                    >
+                                      <CheckCircle2 className="h-3 w-3 text-primary-foreground opacity-0 peer-data-[state=checked]:opacity-100 transition-opacity" />
+                                    </Label>
+                                  </div>
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   ))}
                 </div>
