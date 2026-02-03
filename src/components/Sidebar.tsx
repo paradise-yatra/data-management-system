@@ -92,8 +92,17 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     const location = useLocation();
     const { user, logout, canView, isAdmin } = useAuth();
     const { unreadCount } = useNotifications();
-    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        if (typeof window !== 'undefined' && user?._id) {
+            const saved = localStorage.getItem(`sidebar_collapsed_${user._id}`);
+            if (saved !== null) return JSON.parse(saved);
+        }
+        return false;
+    });
+
     const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+    const [isInitialized, setIsInitialized] = useState(false);
     const [deniedItem, setDeniedItem] = useState<{ label: string; path: string } | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -340,6 +349,36 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     const currentRbacItems = (project === 'voya-trail' || project === 'telecaller' || project === 'sales' || isSalesPanel || !isRbacPanel)
         ? []
         : filterNavItems(rbacItems);
+
+    // Initial state from localStorage for expanded menus (can't do in useState easily due to auto-expansion)
+    useEffect(() => {
+        if (user?._id && !isInitialized) {
+            // isCollapsed is already initialized in useState, but we sync it here just in case user changed
+            const savedCollapsed = localStorage.getItem(`sidebar_collapsed_${user._id}`);
+            if (savedCollapsed !== null) {
+                setIsCollapsed(JSON.parse(savedCollapsed));
+            }
+
+            const savedExpanded = localStorage.getItem(`sidebar_expanded_${user._id}`);
+            if (savedExpanded !== null) {
+                setExpandedMenus(JSON.parse(savedExpanded));
+            }
+            setIsInitialized(true);
+        }
+    }, [user?._id, isInitialized]);
+
+    // Save to localStorage when state changes
+    useEffect(() => {
+        if (user?._id && isInitialized) {
+            localStorage.setItem(`sidebar_collapsed_${user._id}`, JSON.stringify(isCollapsed));
+        }
+    }, [isCollapsed, user?._id, isInitialized]);
+
+    useEffect(() => {
+        if (user?._id && isInitialized) {
+            localStorage.setItem(`sidebar_expanded_${user._id}`, JSON.stringify(expandedMenus));
+        }
+    }, [expandedMenus, user?._id, isInitialized]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {

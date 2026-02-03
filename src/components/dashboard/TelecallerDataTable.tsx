@@ -316,21 +316,51 @@ export function TelecallerDataTable({
                             Previous
                         </Button>
                         <div className="flex items-center gap-1">
-                            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                                <Button
-                                    key={page}
-                                    variant={page === currentPage ? 'default' : 'ghost'}
-                                    size="sm"
-                                    onClick={() => setCurrentPage(page)}
-                                    className={
-                                        page === currentPage
-                                            ? 'bg-foreground text-background hover:bg-foreground/90'
-                                            : 'text-muted-foreground hover:text-foreground'
+                            {(() => {
+                                const pages: (number | string)[] = [];
+                                const showMax = 5;
+                                if (totalPages <= 7) {
+                                    for (let i = 1; i <= totalPages; i++) pages.push(i);
+                                } else {
+                                    pages.push(1);
+                                    if (currentPage > 3) pages.push('...');
+
+                                    const start = Math.max(2, currentPage - 1);
+                                    const end = Math.min(totalPages - 1, currentPage + 1);
+
+                                    let adjustedStart = start;
+                                    let adjustedEnd = end;
+                                    if (currentPage <= 3) adjustedEnd = 4;
+                                    if (currentPage >= totalPages - 2) adjustedStart = totalPages - 3;
+
+                                    for (let i = adjustedStart; i <= adjustedEnd; i++) {
+                                        if (!pages.includes(i)) pages.push(i);
                                     }
-                                >
-                                    {page}
-                                </Button>
-                            ))}
+
+                                    if (currentPage < totalPages - 2) pages.push('...');
+                                    if (!pages.includes(totalPages)) pages.push(totalPages);
+                                }
+
+                                return pages.map((page, i) => (
+                                    page === '...' ? (
+                                        <span key={`ellipsis-${i}`} className="px-2 text-muted-foreground">...</span>
+                                    ) : (
+                                        <Button
+                                            key={page}
+                                            variant={page === currentPage ? 'default' : 'ghost'}
+                                            size="sm"
+                                            onClick={() => setCurrentPage(page as number)}
+                                            className={
+                                                page === currentPage
+                                                    ? 'bg-foreground text-background hover:bg-foreground/90'
+                                                    : 'text-muted-foreground hover:text-foreground'
+                                            }
+                                        >
+                                            {page}
+                                        </Button>
+                                    )
+                                ));
+                            })()}
                         </div>
                         <Button
                             variant="outline"

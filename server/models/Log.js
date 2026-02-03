@@ -28,6 +28,9 @@ const logSchema = new mongoose.Schema({
       'delete_user',
       'user_login',
       'user_logout',
+      'add_telecaller_destination',
+      'update_telecaller_destination',
+      'delete_telecaller_destination',
     ],
   },
   userId: {
@@ -111,6 +114,12 @@ logSchema.methods.getFormattedDetails = function () {
       return `Logged in from ${details.deviceType || 'unknown device'}`;
     case 'user_logout':
       return `Logged out from ${details.deviceType || 'unknown device'}`;
+    case 'add_telecaller_destination':
+      return `Added telecaller destination: ${details.name || 'Unknown'}`;
+    case 'update_telecaller_destination':
+      return `Updated telecaller destination from "${details.oldName}" to "${details.newName}"`;
+    case 'delete_telecaller_destination':
+      return `Deleted telecaller destination: ${details.name || 'Unknown'}`;
     default:
       return JSON.stringify(details);
   }

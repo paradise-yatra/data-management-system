@@ -1490,6 +1490,22 @@ export const telecallerAPI = {
     return response.json();
   },
 
+  // Update a destination specific to telecalling
+  updateDestination: async (id: string, data: { name: string }): Promise<{ _id: string, name: string }> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-destinations/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update telecaller destination');
+    }
+    return response.json();
+  },
+
   // Delete a destination specific to telecalling
   deleteDestination: async (id: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/telecaller-destinations/${id}`, {

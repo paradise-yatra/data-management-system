@@ -88,9 +88,20 @@ const telecallerLeadSchema = new mongoose.Schema({
     },
 });
 
-// Update the updatedAt field before saving
+// Update the updatedAt field and format name before saving
 telecallerLeadSchema.pre('save', function (next) {
     this.updatedAt = Date.now();
+
+    // Format leadName to Title Case
+    if (this.leadName) {
+        this.leadName = this.leadName
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+
     next();
 });
 

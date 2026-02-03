@@ -31,6 +31,43 @@ router.post('/', async (req, res) => {
     }
 });
 
+router.put('/:id', async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name) return res.status(400).json({ error: 'Name is required' });
+
+        const destination = await TelecallerDestination.findById(req.params.id);
+        if (!destination) return res.status(404).json({ error: 'Destination not found' });
+
+        const oldName = destination.name;
+        const newName = name.trim();
+
+        if (oldName === newName) {
+            return res.json(destination);
+        }
+
+        // Check if new name already exists
+        const existing = await TelecallerDestination.findOne({ name: newName });
+        if (existing) return res.status(400).json({ error: 'Destination with this name already exists' });
+
+        // Update the destination
+        destination.name = newName;
+        await destination.save();
+
+        // Update all leads using this destination
+        await TelecallerLead.updateMany(
+            { destination: oldName },
+            { $set: { destination: newName } }
+        );
+
+        await createLog('update_telecaller_destination', req, { oldName, newName });
+
+        res.json(destination);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 router.delete('/:id', async (req, res) => {
     try {
         const destination = await TelecallerDestination.findById(req.params.id);

@@ -19,6 +19,7 @@ import { ChevronDown, Calendar as CalendarIcon } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { parseISO, formatISO } from 'date-fns';
 import { TelecallerLeadRecord } from '@/types/telecaller';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 const formSchema = z.object({
     leadName: z.string().optional(),
@@ -131,9 +132,19 @@ export function TelecallerRecordModal({
         setSaveError(null);
         setSaveSuccess(false);
         try {
+            // Format name to Title Case
+            const formattedName = data.leadName
+                ? data.leadName
+                    .trim()
+                    .toLowerCase()
+                    .split(/\s+/)
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ')
+                : '';
+
             // Calculate total paxCount
             const paxCount = (data.adults || 0) + (data.children || 0);
-            const submissionData = { ...data, paxCount };
+            const submissionData = { ...data, leadName: formattedName, paxCount };
             await onSave(submissionData as Omit<TelecallerLeadRecord, '_id' | 'uniqueId' | 'dateAdded'>);
             setSaveSuccess(true);
         } catch (error: any) {
@@ -212,21 +223,12 @@ export function TelecallerRecordModal({
 
                                 <div className="space-y-2">
                                     <Label className="text-foreground">Destination</Label>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="outline" className="w-full gap-2 justify-between border-border font-normal">
-                                                {watchedDestination || 'Select destination'}
-                                                <ChevronDown className="h-4 w-4 opacity-50" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent className="min-w-[300px]">
-                                            {destinations.map((d) => (
-                                                <DropdownMenuItem key={d._id} onClick={() => setValue('destination', d.name)}>
-                                                    {d.name}
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                    <SearchableSelect
+                                        options={destinations.map(d => ({ label: d.name, value: d.name }))}
+                                        value={watchedDestination}
+                                        onChange={(val) => setValue('destination', val, { shouldDirty: true, shouldValidate: true })}
+                                        placeholder="Select destination"
+                                    />
                                 </div>
 
                                 <div className="space-y-2">

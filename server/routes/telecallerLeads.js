@@ -118,17 +118,21 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const updateData = req.body;
-        updateData.updatedAt = Date.now();
 
-        const lead = await TelecallerLead.findByIdAndUpdate(
-            req.params.id,
-            updateData,
-            { new: true, runValidators: true }
-        );
-
+        const lead = await TelecallerLead.findById(req.params.id);
         if (!lead) {
             return res.status(404).json({ error: 'Lead not found' });
         }
+
+        // Apply updates
+        Object.keys(updateData).forEach(key => {
+            if (key !== '_id' && key !== 'uniqueId') {
+                lead[key] = updateData[key];
+            }
+        });
+        lead.updatedAt = Date.now(); // Manually set updatedAt
+
+        await lead.save();
 
         // Calculate Changes (Simple approximation)
         // ideally we would compare oldLead vs newLead, but to save a DB call we'll just log the updateData 

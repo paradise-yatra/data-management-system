@@ -11,7 +11,7 @@ router.use(authenticateToken);
 // Get current date and time in Indian Standard Time (IST)
 const getISTDateTime = () => {
   const now = new Date();
-  
+
   // Get IST time using toLocaleString
   const istString = now.toLocaleString('en-US', {
     timeZone: 'Asia/Kolkata',
@@ -23,13 +23,13 @@ const getISTDateTime = () => {
     second: '2-digit',
     hour12: false,
   });
-  
+
   // Parse the IST string and format as ISO
   // Format: MM/DD/YYYY, HH:MM:SS
   const [datePart, timePart] = istString.split(', ');
   const [month, day, year] = datePart.split('/');
   const [hours, minutes, seconds] = timePart.split(':');
-  
+
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+05:30`;
 };
 
@@ -206,10 +206,10 @@ router.post('/', async (req, res) => {
     const identityName = (name && typeof name === 'string' && name.trim()) ? name.trim() : '';
     const trimmedEmail = email?.trim() || '';
     const trimmedPhone = phone?.trim() || '';
-    
+
     // Check for duplicate email (if email is provided)
     if (trimmedEmail) {
-      const existingEmail = await Identity.findOne({ 
+      const existingEmail = await Identity.findOne({
         email: trimmedEmail,
         _id: { $ne: req.body._id } // Exclude current record if updating
       });
@@ -217,10 +217,10 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'An entry with this email already exists' });
       }
     }
-    
+
     // Check for duplicate phone (if phone is provided)
     if (trimmedPhone) {
-      const existingPhone = await Identity.findOne({ 
+      const existingPhone = await Identity.findOne({
         phone: trimmedPhone,
         _id: { $ne: req.body._id } // Exclude current record if updating
       });
@@ -228,7 +228,7 @@ router.post('/', async (req, res) => {
         return res.status(400).json({ error: 'An entry with this phone number already exists' });
       }
     }
-    
+
     const identity = new Identity({
       name: identityName,
       email: trimmedEmail,
@@ -242,7 +242,7 @@ router.post('/', async (req, res) => {
     await identity.save();
     // Ensure uniqueId is included in response
     const savedIdentity = await Identity.findById(identity._id);
-    
+
     // Log the action
     await createLog('add_identity', req, {
       uniqueId: savedIdentity.uniqueId,
@@ -250,7 +250,7 @@ router.post('/', async (req, res) => {
       email: savedIdentity.email,
       phone: savedIdentity.phone,
     });
-    
+
     res.status(201).json(savedIdentity);
   } catch (error) {
     // Handle validation errors
@@ -286,21 +286,23 @@ router.put('/:id', async (req, res) => {
 
     // Ensure name is always a string (empty string if not provided)
     const identityName = (name && typeof name === 'string' && name.trim()) ? name.trim() : '';
-    
-    const identity = await Identity.findByIdAndUpdate(
-      req.params.id,
-      {
-        name: identityName,
-        email: email?.trim() || '',
-        phone: phone?.trim() || '',
-        interests: Array.isArray(interests) ? interests : [],
-        source: source.trim(),
-        remarks: remarks?.trim() || '',
-        dateAdded: dateAdded || getISTDateTime(),
-        updatedAt: Date.now(),
-      },
-      { new: true, runValidators: true }
-    );
+
+    const identity = await Identity.findById(req.params.id);
+    if (!identity) {
+      return res.status(404).json({ error: 'Identity not found' });
+    }
+
+    // Apply updates
+    identity.name = identityName;
+    identity.email = email?.trim() || '';
+    identity.phone = phone?.trim() || '';
+    identity.interests = Array.isArray(interests) ? interests : [];
+    identity.source = source.trim();
+    identity.remarks = remarks?.trim() || '';
+    identity.dateAdded = dateAdded || getISTDateTime();
+    identity.updatedAt = Date.now();
+
+    await identity.save();
 
     // Track changed fields
     const changedFields = [];
@@ -333,7 +335,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const identity = await Identity.findByIdAndDelete(req.params.id);
-    
+
     if (!identity) {
       return res.status(404).json({ error: 'Identity not found' });
     }

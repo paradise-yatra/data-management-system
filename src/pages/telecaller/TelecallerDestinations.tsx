@@ -37,6 +37,7 @@ const TelecallerDestinations = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [newDestinationName, setNewDestinationName] = useState('');
+    const [editingDestination, setEditingDestination] = useState<{ _id: string, name: string } | null>(null);
     const [deleteDestination, setDeleteDestination] = useState<{ id: string, name: string } | null>(null);
 
     useEffect(() => {
@@ -63,14 +64,31 @@ const TelecallerDestinations = () => {
         }
 
         try {
-            const created = await telecallerAPI.createDestination({ name: newDestinationName.trim() });
-            setDestinations(prev => [...prev, created]);
-            showToast.success('Destination added successfully');
-            setIsModalOpen(false);
-            setNewDestinationName('');
+            if (editingDestination) {
+                // Update existing
+                const updated = await telecallerAPI.updateDestination(editingDestination._id, { name: newDestinationName.trim() });
+                setDestinations(prev => prev.map(dest => dest._id === updated._id ? updated : dest));
+                showToast.success('Destination updated successfully');
+                setIsModalOpen(false);
+                setEditingDestination(null);
+                setNewDestinationName('');
+            } else {
+                // Create new
+                const created = await telecallerAPI.createDestination({ name: newDestinationName.trim() });
+                setDestinations(prev => [...prev, created]);
+                showToast.success('Destination added successfully');
+                setIsModalOpen(false);
+                setNewDestinationName('');
+            }
         } catch (error: any) {
-            showToast.error(error.message || 'Failed to add destination');
+            showToast.error(error.message || 'Failed to save destination');
         }
+    };
+
+    const handleEdit = (dest: { _id: string, name: string }) => {
+        setEditingDestination(dest);
+        setNewDestinationName(dest.name);
+        setIsModalOpen(true);
     };
 
     const handleDelete = (id: string, name: string) => {
@@ -115,7 +133,7 @@ const TelecallerDestinations = () => {
                         </div>
                         <Tooltip delayDuration={0}>
                             <TooltipTrigger asChild>
-                                <Button className="gap-2" onClick={() => setIsModalOpen(true)}>
+                                <Button className="gap-2" onClick={() => { setEditingDestination(null); setNewDestinationName(''); setIsModalOpen(true); }}>
                                     <Plus className="h-4 w-4" />
                                     Add Destination
                                 </Button>
@@ -158,17 +176,30 @@ const TelecallerDestinations = () => {
                                             </div>
                                             <span className="font-semibold text-foreground">{dest.name}</span>
                                         </div>
-                                        <Tooltip delayDuration={0}>
-                                            <TooltipTrigger asChild>
-                                                <button
-                                                    onClick={() => handleDelete(dest._id, dest.name)}
-                                                    className="absolute top-2 right-2 p-1.5 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all rounded-md hover:bg-destructive/10"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>Delete destination</TooltipContent>
-                                        </Tooltip>
+                                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                            <Tooltip delayDuration={0}>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        onClick={() => handleEdit(dest)}
+                                                        className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>Edit destination</TooltipContent>
+                                            </Tooltip>
+                                            <Tooltip delayDuration={0}>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        onClick={() => handleDelete(dest._id, dest.name)}
+                                                        className="p-1.5 text-muted-foreground hover:text-destructive rounded-md hover:bg-destructive/10"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent>Delete destination</TooltipContent>
+                                            </Tooltip>
+                                        </div>
                                     </motion.div>
                                 ))}
                             </div>
@@ -187,13 +218,15 @@ const TelecallerDestinations = () => {
                 </div>
             </main>
 
-            {/* Add Destination Modal */}
+            {/* Modal */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Add New Destination</DialogTitle>
+                        <DialogTitle>{editingDestination ? 'Edit Destination' : 'Add New Destination'}</DialogTitle>
                         <DialogDescription>
-                            Enter the name of the destination you want to add to the telecalling panel.
+                            {editingDestination
+                                ? 'Update the name of this destination. This will also update it in all existing leads.'
+                                : 'Enter the name of the destination you want to add to the telecalling panel.'}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -210,8 +243,8 @@ const TelecallerDestinations = () => {
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => { setIsModalOpen(false); setNewDestinationName(''); }}>Cancel</Button>
-                        <Button onClick={handleSave}>Add Destination</Button>
+                        <Button variant="outline" onClick={() => { setIsModalOpen(false); setNewDestinationName(''); setEditingDestination(null); }}>Cancel</Button>
+                        <Button onClick={handleSave}>{editingDestination ? 'Update Destination' : 'Add Destination'}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -50,9 +50,20 @@ const identitySchema = new mongoose.Schema({
   },
 });
 
-// Update the updatedAt field before saving
+// Update the updatedAt field and format name before saving
 identitySchema.pre('save', function (next) {
   this.updatedAt = Date.now();
+
+  // Format name to Title Case
+  if (this.name) {
+    this.name = this.name
+      .trim()
+      .toLowerCase()
+      .split(/\s+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+
   next();
 });
 
@@ -63,14 +74,14 @@ identitySchema.pre('save', async function (next) {
     try {
       // Use this.constructor to get the model
       const IdentityModel = this.constructor;
-      
+
       // Find all identities with uniqueId
       const allIdentities = await IdentityModel.find(
         { uniqueId: { $exists: true, $ne: null } }
       );
-      
+
       let maxNumber = 0;
-      
+
       // Extract the highest number from existing uniqueIds
       allIdentities.forEach((identity) => {
         if (identity.uniqueId) {
@@ -90,7 +101,7 @@ identitySchema.pre('save', async function (next) {
           }
         }
       });
-      
+
       // Generate new uniqueId in PYIMS-X format
       this.uniqueId = `PYIMS-${maxNumber + 1}`;
     } catch (error) {
