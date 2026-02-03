@@ -132,9 +132,15 @@ export function TelecallerRecordDetailsModal({
                                     </div>
                                     <div className="flex items-start gap-3">
                                         <Users className="h-4 w-4 mt-1 text-primary" />
-                                        <div className="flex flex-col">
+                                        <div className="flex flex-col gap-1">
                                             <span className="text-xs text-muted-foreground">Passengers (Pax)</span>
-                                            <span className="text-sm text-foreground font-medium">{record.paxCount || 0} People</span>
+                                            <div className="flex flex-col gap-0.5">
+                                                <span className="text-sm text-foreground font-medium">{record.paxCount || 0} Total People</span>
+                                                <div className="flex gap-3 text-[11px] text-muted-foreground">
+                                                    <span>Adults: <span className="text-foreground font-medium">{record.adults || 0}</span></span>
+                                                    <span>Children: <span className="text-foreground font-medium">{record.children || 0}</span></span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

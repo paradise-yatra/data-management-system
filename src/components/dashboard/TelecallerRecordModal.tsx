@@ -28,6 +28,8 @@ const formSchema = z.object({
     duration: z.string().optional(),
     travelDate: z.string().optional(),
     budget: z.preprocess((val) => (typeof val === 'string' && val.trim() === '') || val === null || val === undefined ? undefined : Number(val), z.number().optional()),
+    adults: z.preprocess((val) => (typeof val === 'string' && val.trim() === '') || val === null || val === undefined ? undefined : Number(val), z.number().optional()),
+    children: z.preprocess((val) => (typeof val === 'string' && val.trim() === '') || val === null || val === undefined ? undefined : Number(val), z.number().optional()),
     paxCount: z.preprocess((val) => (typeof val === 'string' && val.trim() === '') || val === null || val === undefined ? undefined : Number(val), z.number().optional()),
     status: z.enum(['Hot', 'Cold', 'Not Reachable', 'Not Interested', 'Follow-up'], {
         required_error: 'Please select a status',
@@ -73,6 +75,8 @@ export function TelecallerRecordModal({
             duration: '',
             travelDate: '',
             budget: undefined,
+            adults: undefined,
+            children: undefined,
             paxCount: undefined,
             status: 'Hot',
             nextFollowUp: '',
@@ -96,6 +100,8 @@ export function TelecallerRecordModal({
                     duration: editingRecord.duration || '',
                     travelDate: editingRecord.travelDate || '',
                     budget: editingRecord.budget || undefined,
+                    adults: editingRecord.adults || undefined,
+                    children: editingRecord.children || undefined,
                     paxCount: editingRecord.paxCount || undefined,
                     status: editingRecord.status,
                     nextFollowUp: editingRecord.nextFollowUp || '',
@@ -110,6 +116,8 @@ export function TelecallerRecordModal({
                     duration: '',
                     travelDate: '',
                     budget: undefined,
+                    adults: undefined,
+                    children: undefined,
                     paxCount: undefined,
                     status: 'Hot',
                     nextFollowUp: '',
@@ -123,7 +131,10 @@ export function TelecallerRecordModal({
         setSaveError(null);
         setSaveSuccess(false);
         try {
-            await onSave(data as Omit<TelecallerLeadRecord, '_id' | 'uniqueId' | 'dateAdded'>);
+            // Calculate total paxCount
+            const paxCount = (data.adults || 0) + (data.children || 0);
+            const submissionData = { ...data, paxCount };
+            await onSave(submissionData as Omit<TelecallerLeadRecord, '_id' | 'uniqueId' | 'dateAdded'>);
             setSaveSuccess(true);
         } catch (error: any) {
             setSaveSuccess(false);
@@ -259,9 +270,27 @@ export function TelecallerRecordModal({
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label className="text-foreground">Pax Count</Label>
-                                    <Input {...register('paxCount')} type="number" placeholder="Number of guests" className="border-border bg-background" />
-                                    {errors.paxCount && <p className="text-xs text-destructive">{errors.paxCount.message}</p>}
+                                    <Label className="text-foreground">Pax (Adults / Children)</Label>
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <Input
+                                                {...register('adults')}
+                                                type="number"
+                                                placeholder="Adults"
+                                                className="border-border bg-background"
+                                            />
+                                            {errors.adults && <p className="text-[10px] text-destructive mt-1">{errors.adults.message}</p>}
+                                        </div>
+                                        <div className="flex-1">
+                                            <Input
+                                                {...register('children')}
+                                                type="number"
+                                                placeholder="Children"
+                                                className="border-border bg-background"
+                                            />
+                                            {errors.children && <p className="text-[10px] text-destructive mt-1">{errors.children.message}</p>}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">

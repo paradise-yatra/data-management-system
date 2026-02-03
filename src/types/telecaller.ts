@@ -9,6 +9,8 @@ export interface TelecallerLeadRecord {
     travelDate: string;
     budget?: number;
     paxCount?: number;
+    adults?: number;
+    children?: number;
     status: 'Hot' | 'Cold' | 'Not Reachable' | 'Not Interested' | 'Follow-up';
     nextFollowUp?: string;
     remarks: string;
@@ -16,6 +18,9 @@ export interface TelecallerLeadRecord {
     addedBy?: string;
     assignedTo?: string | { _id: string, name: string };
     assignedBy?: string | { _id: string, name: string };
+    dateAdded?: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface TelecallerLog {

@@ -38,6 +38,12 @@ const telecallerLeadSchema = new mongoose.Schema({
     paxCount: {
         type: Number,
     },
+    adults: {
+        type: Number,
+    },
+    children: {
+        type: Number,
+    },
     status: {
         type: String,
         enum: ['Hot', 'Cold', 'Not Reachable', 'Not Interested', 'Follow-up'],
