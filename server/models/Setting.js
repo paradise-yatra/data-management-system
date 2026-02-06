@@ -38,3 +38,4 @@ const Setting = crmDb.model('Setting', settingSchema, 'settings');
 export default Setting;
 
 
+

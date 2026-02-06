@@ -2,15 +2,27 @@ import express from 'express';
 import User from '../models/User.js';
 import Role from '../models/Role.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { requirePermission } from '../middleware/rbac.js';
+import { requirePermission, getAccessLevel, hasMinLevel } from '../middleware/rbac.js';
 import { createLog } from '../utils/logger.js';
 
 const router = express.Router();
 
 router.use(authenticateToken);
 
-// GET /api/users - List all users (manage_users view)
-router.get('/', requirePermission('manage_users', 'view'), async (req, res) => {
+// GET /api/users - List all users (manage_users view OR telecaller_transfer view)
+router.get('/', async (req, res, next) => {
+  const permissions = req.user.permissions || {};
+  const hasManageUsers = hasMinLevel(getAccessLevel(permissions, 'manage_users'), 'view');
+  const hasTransferLead = hasMinLevel(getAccessLevel(permissions, 'telecaller_transfer'), 'view');
+
+  if (hasManageUsers || hasTransferLead) {
+    return next();
+  }
+
+  return res.status(403).json({
+    error: `Access denied. Required: manage_users or telecaller_transfer with view access.`,
+  });
+}, async (req, res) => {
   try {
     const users = await User.find()
       .populate('departmentId', 'name')
