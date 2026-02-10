@@ -1,8 +1,9 @@
-import { ItineraryList } from './ItineraryList';
+import { TripBuilder } from './TripBuilder';
 
 export const ItineraryBuilder = () => {
-  return <ItineraryList />;
+  return <TripBuilder />;
 };
+
 
 
 

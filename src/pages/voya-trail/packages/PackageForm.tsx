@@ -10,7 +10,8 @@ import {
     ExternalLink, ArrowUp, ArrowDown, Copy, GripVertical,
     Hotel, MapPin, Image as ImageIcon, Star, Activity,
     Info, Calendar, Utensils, Plane, Train, Building2,
-    CheckCircle2, Clock, X, ChevronDown, Search
+    CheckCircle2, Clock, X, ChevronDown, Search, Car,
+    Bus, Camera, Ticket, Coffee, Sun, Moon
 } from 'lucide-react';
 import {
     Accordion,
@@ -110,7 +111,19 @@ const tourPackageSchema = z.object({
 
 type TourPackageFormValues = z.infer<typeof tourPackageSchema>;
 
-const AMENITIES_OPTIONS = ['Hotel', 'Car', 'Utensils', 'Ticket'];
+const AMENITIES_OPTIONS = [
+    { label: 'Hotel', icon: Hotel },
+    { label: 'Private Transfers', icon: Car },
+    { label: 'Luxury 5 Star Hotel', icon: Star },
+    { label: 'Flight Tickets', icon: Plane },
+    { label: 'Train Tickets', icon: Train },
+    { label: 'Bus Tickets', icon: Bus },
+    { label: 'Breakfast', icon: Coffee },
+    { label: 'Lunch', icon: Sun },
+    { label: 'Dinner', icon: Moon },
+    { label: 'Sightseeing', icon: Camera },
+    { label: 'Entrance Fees', icon: Ticket },
+];
 
 export default function PackageForm() {
     const { id } = useParams();
@@ -195,8 +208,14 @@ export default function PackageForm() {
                         durationNights: data.duration?.nights || data.durationNights || 0,
                         basePrice: data.startingPrice || data.basePrice || 0,
                         overviewDescription: data.overview?.description || data.overviewDescription || '',
-                        guideType: data.guideType || 'Private Expert',
-                        languages: data.languages || ['English'],
+                        guideType: data.overview?.guide || data.guideType || 'Private Expert',
+                        languages: Array.isArray(data.languages)
+                            ? data.languages
+                            : (typeof data.overview?.languages === 'string'
+                                ? data.overview.languages.split(',').map((s: string) => s.trim()).filter(Boolean)
+                                : (typeof data.languages === 'string'
+                                    ? (data.languages as string).split(',').map((s: string) => s.trim()).filter(Boolean)
+                                    : ['English'])),
                         itinerary: (data.itinerary || []).map((item: any) => ({
                             ...item,
                             day: item.dayNumber || item.day || 1,
@@ -246,7 +265,10 @@ export default function PackageForm() {
                 startingPrice: data.basePrice,
                 overview: {
                     title: data.title,
-                    description: data.overviewDescription
+                    description: data.overviewDescription,
+                    groupSize: `${data.minPeople}-${data.maxPeople} Guests`,
+                    guide: data.guideType,
+                    languages: Array.isArray(data.languages) ? data.languages.join(", ") : data.languages
                 },
                 itinerary: data.itinerary.map(item => ({
                     ...item,
@@ -533,14 +555,66 @@ export default function PackageForm() {
                                                                 <FormItem>
                                                                     <FormLabel className="font-bold">Languages</FormLabel>
                                                                     <FormControl>
-                                                                        <Input
-                                                                            placeholder="e.g. English, Hindi, French"
-                                                                            value={field.value?.join(', ')}
-                                                                            onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                                                                            className="bg-background h-11 rounded-lg border-border/50"
-                                                                        />
+                                                                        <div className="space-y-3">
+                                                                            <div className="flex flex-wrap gap-2">
+                                                                                {field.value?.map((language: string, langIndex: number) => (
+                                                                                    <Badge
+                                                                                        key={langIndex}
+                                                                                        variant="secondary"
+                                                                                        className="pl-3 pr-1 py-1 gap-1 bg-primary/5 text-primary border-primary/10 hover:bg-primary/10 transition-colors rounded-lg group"
+                                                                                    >
+                                                                                        <span className="text-xs font-medium">{language}</span>
+                                                                                        <Button
+                                                                                            type="button"
+                                                                                            variant="ghost"
+                                                                                            size="icon"
+                                                                                            className="h-5 w-5 rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                                                                                            onClick={() => {
+                                                                                                const newLangs = [...field.value];
+                                                                                                newLangs.splice(langIndex, 1);
+                                                                                                field.onChange(newLangs);
+                                                                                            }}
+                                                                                        >
+                                                                                            <X className="h-3 w-3" />
+                                                                                        </Button>
+                                                                                    </Badge>
+                                                                                ))}
+                                                                            </div>
+                                                                            <div className="relative">
+                                                                                <Input
+                                                                                    placeholder="Type a language and press Enter..."
+                                                                                    className="bg-background border-border/50 h-11 rounded-xl pr-12 focus:border-primary transition-all"
+                                                                                    onKeyDown={(e) => {
+                                                                                        if (e.key === 'Enter') {
+                                                                                            e.preventDefault();
+                                                                                            const val = e.currentTarget.value.trim();
+                                                                                            if (val) {
+                                                                                                field.onChange([...(field.value || []), val]);
+                                                                                                e.currentTarget.value = '';
+                                                                                            }
+                                                                                        }
+                                                                                    }}
+                                                                                />
+                                                                                <Button
+                                                                                    type="button"
+                                                                                    size="icon"
+                                                                                    variant="ghost"
+                                                                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 text-primary hover:bg-primary/10 rounded-lg"
+                                                                                    onClick={(e) => {
+                                                                                        const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                                                                        const val = input.value.trim();
+                                                                                        if (val) {
+                                                                                            field.onChange([...(field.value || []), val]);
+                                                                                            input.value = '';
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <Plus className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </div>
+                                                                        </div>
                                                                     </FormControl>
-                                                                    <FormDescription className="text-[10px]">Separate languages with commas.</FormDescription>
+                                                                    <FormDescription className="text-[10px]">Add languages supported by the tour. Press Enter or click (+) to add.</FormDescription>
                                                                     <FormMessage />
                                                                 </FormItem>
                                                             )}
@@ -654,32 +728,36 @@ export default function PackageForm() {
                                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                                         {AMENITIES_OPTIONS.map((item) => (
                                                             <FormField
-                                                                key={item}
+                                                                key={item.label}
                                                                 control={form.control}
                                                                 name="amenities"
                                                                 render={({ field }) => {
+                                                                    const Icon = item.icon;
                                                                     return (
                                                                         <FormItem
-                                                                            key={item}
-                                                                            className="flex flex-row items-center space-x-3 space-y-0 bg-muted/20 p-3 rounded-lg border border-border/50 hover:bg-muted/40 transition-colors cursor-pointer"
+                                                                            key={item.label}
+                                                                            className="flex flex-row items-center space-x-3 space-y-0 bg-muted/20 p-3 rounded-lg border border-border/50 hover:bg-muted/40 transition-colors cursor-pointer group"
                                                                         >
                                                                             <FormControl>
                                                                                 <Checkbox
-                                                                                    checked={field.value?.includes(item)}
+                                                                                    checked={field.value?.includes(item.label)}
                                                                                     onCheckedChange={(checked) => {
                                                                                         return checked
-                                                                                            ? field.onChange([...field.value, item])
+                                                                                            ? field.onChange([...field.value, item.label])
                                                                                             : field.onChange(
                                                                                                 field.value?.filter(
-                                                                                                    (value) => value !== item
+                                                                                                    (value) => value !== item.label
                                                                                                 )
                                                                                             )
                                                                                     }}
                                                                                 />
                                                                             </FormControl>
-                                                                            <FormLabel className="font-bold cursor-pointer">
-                                                                                {item}
-                                                                            </FormLabel>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Icon className="h-4 w-4 text-primary/60 group-hover:text-primary transition-colors" />
+                                                                                <FormLabel className="font-bold cursor-pointer text-xs">
+                                                                                    {item.label}
+                                                                                </FormLabel>
+                                                                            </div>
                                                                         </FormItem>
                                                                     )
                                                                 }}
@@ -1324,13 +1402,68 @@ export default function PackageForm() {
                                                                                         <FormItem>
                                                                                             <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/70">Facilities</FormLabel>
                                                                                             <FormControl>
-                                                                                                <Input
-                                                                                                    placeholder="WiFi, Pool, Spa..."
-                                                                                                    value={field.value?.join(', ')}
-                                                                                                    onChange={(e) => field.onChange(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-                                                                                                    className="bg-background border-border/50 h-11 rounded-xl"
-                                                                                                />
+                                                                                                <div className="space-y-3">
+                                                                                                    <div className="flex flex-wrap gap-2">
+                                                                                                        {field.value?.map((facility: string, facIndex: number) => (
+                                                                                                            <Badge
+                                                                                                                key={facIndex}
+                                                                                                                variant="secondary"
+                                                                                                                className="pl-3 pr-1 py-1 gap-1 bg-primary/5 text-primary border-primary/10 hover:bg-primary/10 transition-colors rounded-lg group"
+                                                                                                            >
+                                                                                                                <span className="text-xs font-medium">{facility}</span>
+                                                                                                                <Button
+                                                                                                                    type="button"
+                                                                                                                    variant="ghost"
+                                                                                                                    size="icon"
+                                                                                                                    className="h-5 w-5 rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                                                                                                                    onClick={() => {
+                                                                                                                        const newFacs = [...field.value];
+                                                                                                                        newFacs.splice(facIndex, 1);
+                                                                                                                        field.onChange(newFacs);
+                                                                                                                    }}
+                                                                                                                >
+                                                                                                                    <X className="h-3 w-3" />
+                                                                                                                </Button>
+                                                                                                            </Badge>
+                                                                                                        ))}
+                                                                                                    </div>
+                                                                                                    <div className="relative">
+                                                                                                        <Input
+                                                                                                            placeholder="Type a facility and press Enter..."
+                                                                                                            className="bg-background border-border/50 h-11 rounded-xl pr-12 focus:border-primary transition-all"
+                                                                                                            onKeyDown={(e) => {
+                                                                                                                if (e.key === 'Enter') {
+                                                                                                                    e.preventDefault();
+                                                                                                                    const val = e.currentTarget.value.trim();
+                                                                                                                    if (val) {
+                                                                                                                        field.onChange([...(field.value || []), val]);
+                                                                                                                        e.currentTarget.value = '';
+                                                                                                                    }
+                                                                                                                }
+                                                                                                            }}
+                                                                                                        />
+                                                                                                        <Button
+                                                                                                            type="button"
+                                                                                                            size="icon"
+                                                                                                            variant="ghost"
+                                                                                                            className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 text-primary hover:bg-primary/10 rounded-lg"
+                                                                                                            onClick={(e) => {
+                                                                                                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                                                                                                const val = input.value.trim();
+                                                                                                                if (val) {
+                                                                                                                    field.onChange([...(field.value || []), val]);
+                                                                                                                    input.value = '';
+                                                                                                                }
+                                                                                                            }}
+                                                                                                        >
+                                                                                                            <Plus className="h-4 w-4" />
+                                                                                                        </Button>
+                                                                                                    </div>
+                                                                                                </div>
                                                                                             </FormControl>
+                                                                                            <FormDescription className="text-[10px] text-muted-foreground mt-1">
+                                                                                                Add hotel facilities. Press Enter or click (+) to add.
+                                                                                            </FormDescription>
                                                                                             <FormMessage />
                                                                                         </FormItem>
                                                                                     )}

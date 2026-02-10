@@ -1,22 +1,22 @@
 import mongoose from 'mongoose';
 import { getParadiseYatraCRMConnection } from '../config/db.js';
 
-const settingSchema = new mongoose.Schema(
+const itineraryBuilderSettingSchema = new mongoose.Schema(
   {
     key: {
       type: String,
-      required: [true, 'Setting key is required'],
-      unique: true,
+      required: true,
       trim: true,
+      unique: true,
     },
     value: {
       type: mongoose.Schema.Types.Mixed,
-      required: [true, 'Setting value is required'],
+      required: true,
     },
     description: {
       type: String,
-      trim: true,
       default: '',
+      trim: true,
     },
     updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -25,17 +25,15 @@ const settingSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true,
+    timestamps: { createdAt: false, updatedAt: true },
   }
 );
 
-// Index
-settingSchema.index({ key: 1 }, { unique: true });
-
 const crmDb = getParadiseYatraCRMConnection();
-const Setting = crmDb.model('Setting', settingSchema, 'settings');
+const ItineraryBuilderSetting = crmDb.model(
+  'ItineraryBuilderSetting',
+  itineraryBuilderSettingSchema,
+  'itinerary_builder_settings'
+);
 
-export default Setting;
-
-
-
+export default ItineraryBuilderSetting;

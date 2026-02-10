@@ -28,6 +28,8 @@ const tourPackageSchema = new mongoose.Schema(
             days: { type: Number, required: true },
             nights: { type: Number, default: 0 },
         },
+        minPeople: { type: Number, default: 2 },
+        maxPeople: { type: Number, default: 12 },
         startingPrice: {
             type: Number,
             required: true,

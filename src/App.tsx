@@ -30,9 +30,7 @@ import EditBlog from "./pages/EditBlog";
 import AccessDenied from "./pages/AccessDenied";
 import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
-import { CostLibrary } from "./pages/itinerary-builder/CostLibrary";
-import { ItineraryList } from "./pages/itinerary-builder/ItineraryList";
-import { ItineraryForm } from "./pages/itinerary-builder/ItineraryForm";
+import { TripBuilder } from "./pages/itinerary-builder/TripBuilder";
 import BackupsPanel from "./pages/BackupsPanel";
 import Notifications from "./pages/Notifications";
 
@@ -116,7 +114,7 @@ const App = () => (
                   path="/sales/itinerary-builder"
                   element={
                     <ProtectedRoute>
-                      <ItineraryList />
+                      <TripBuilder />
                     </ProtectedRoute>
                   }
                 />
@@ -124,7 +122,7 @@ const App = () => (
                   path="/sales/itinerary-builder/cost-library"
                   element={
                     <ProtectedRoute>
-                      <CostLibrary />
+                      <Navigate to="/sales/itinerary-builder" replace />
                     </ProtectedRoute>
                   }
                 />
@@ -132,7 +130,7 @@ const App = () => (
                   path="/sales/itinerary-builder/new"
                   element={
                     <ProtectedRoute>
-                      <ItineraryForm />
+                      <Navigate to="/sales/itinerary-builder" replace />
                     </ProtectedRoute>
                   }
                 />
@@ -140,7 +138,7 @@ const App = () => (
                   path="/sales/itinerary-builder/:id"
                   element={
                     <ProtectedRoute>
-                      <ItineraryForm />
+                      <TripBuilder />
                     </ProtectedRoute>
                   }
                 />
@@ -148,7 +146,7 @@ const App = () => (
                   path="/sales/itinerary-builder/:id/edit"
                   element={
                     <ProtectedRoute>
-                      <ItineraryForm />
+                      <Navigate to="/sales/itinerary-builder" replace />
                     </ProtectedRoute>
                   }
                 />
