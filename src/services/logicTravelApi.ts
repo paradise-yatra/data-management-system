@@ -112,6 +112,181 @@ export interface Trip {
   updatedAt: string;
 }
 
+export interface ItineraryPdfTraveler {
+  leadName?: string;
+  adults: number;
+  children: number;
+  infants: number;
+  nationality: 'DOMESTIC' | 'FOREIGNER';
+  contactPhone?: string;
+  contactEmail?: string;
+}
+
+export interface ItineraryPdfPricingSummary {
+  baseAmount: number;
+  markupPercent: number;
+  markupAmount: number;
+  discountAmount: number;
+  gstPercent: number;
+  gstAmount: number;
+  totalAmount: number;
+  totalFormatted: string;
+}
+
+export interface ItineraryPdfLineItem {
+  label: string;
+  amount: number;
+}
+
+export interface ItineraryPdfPricingSection {
+  currencyCode: string;
+  lineItems: ItineraryPdfLineItem[];
+  summary: ItineraryPdfPricingSummary;
+}
+
+export interface ItineraryPdfEvent {
+  order: number;
+  placeId: string;
+  placeName: string;
+  category: PlaceCategory | string;
+  description?: string;
+  imageUrl?: string | null;
+  startTime: string;
+  endTime: string;
+  durationMin: number;
+  travelTimeMin: number;
+  distanceKm: number;
+  routeProvider: 'OSRM' | 'HAVERSINE' | 'STATIC' | string;
+  validationStatus: 'VALID' | 'INVALID';
+  validationReason?: string | null;
+  prices: {
+    domestic: number;
+    foreigner: number;
+  };
+}
+
+export interface ItineraryPdfDaySection {
+  dayIndex: number;
+  dayNumber: number;
+  date: string;
+  dateLabel: string;
+  title: string;
+  events: ItineraryPdfEvent[];
+  summary: {
+    eventCount: number;
+    dayDistanceKm: number;
+    dayTravelTimeMin: number;
+    dayVisitDurationMin: number;
+    dayTravelLabel: string;
+  };
+}
+
+export interface ItineraryPdfViewModel {
+  tripId: string;
+  tripName: string;
+  status: Trip['status'];
+  locale: string;
+  timezone: string;
+  currencyCode: string;
+  generatedAt: string;
+  generatedAtLabel: string;
+  generatedBy?: string | null;
+  tripPeriod: {
+    startDate: string;
+    endDate: string;
+    startDateLabel: string;
+    endDateLabel: string;
+    totalDays: number;
+  };
+  traveler: ItineraryPdfTraveler;
+  summary: {
+    totalDays: number;
+    totalEvents: number;
+    totalDistanceKm: number;
+    totalTravelTimeMin: number;
+    totalVisitDurationMin: number;
+    totalDistanceLabel: string;
+    totalTravelLabel: string;
+    totalVisitLabel: string;
+  };
+  daySections: ItineraryPdfDaySection[];
+  pricing: ItineraryPdfPricingSection;
+  inclusions: string[];
+  exclusions: string[];
+  notes: string[];
+  terms: string[];
+  agency: {
+    name: string;
+    phone?: string;
+    email?: string;
+    website?: string;
+  };
+  metadata: {
+    source: 'TRIP_DAYS' | 'DRAFT_DAYS';
+    templateVersion: string;
+    renderMode: string;
+    generatedTimestamp: number;
+  };
+}
+
+export interface RenderValidationReport {
+  pass: number;
+  hasViolations: boolean;
+  overflowViolations: Array<{ pageBodyIndex: number; overflowY: number; overflowX: number }>;
+  overlapViolations: Array<{ pageBodyIndex: number; aIndex: number; bIndex: number }>;
+  orphanHeadingViolations: Array<{ pageBodyIndex: number; heading: string; spaceBelow: number }>;
+}
+
+export interface ItineraryDocument {
+  _id: string;
+  tripId: string;
+  version: number;
+  templateVersion: string;
+  renderMode: string;
+  status: 'SUCCESS' | 'FAILED';
+  checksum: string;
+  pageCount: number;
+  fileSizeBytes: number;
+  generatedAt: string;
+  generatedBy?: string | null;
+  failureReason?: string | null;
+  downloadUrl?: string | null;
+}
+
+export interface RenderPdfResponse {
+  documentId: string;
+  version: number;
+  pageCount: number;
+  checksum: string;
+  downloadUrl: string;
+  renderValidationReport: RenderValidationReport;
+}
+
+export interface PdfRenderPayload {
+  draftDays?: Array<{
+    dayIndex: number;
+    date: string;
+    events: Array<{
+      placeId: string;
+      order?: number;
+      startTime?: string | null;
+      endTime?: string | null;
+      travelTimeMin?: number;
+      distanceKm?: number;
+      validationStatus?: 'VALID' | 'INVALID';
+      validationReason?: string | null;
+      routeProvider?: 'OSRM' | 'HAVERSINE' | 'STATIC';
+    }>;
+  }>;
+  traveler?: Partial<ItineraryPdfTraveler>;
+  pricing?: {
+    markupPercent?: number;
+    gstPercent?: number;
+    discountAmount?: number;
+  };
+  notes?: string[];
+}
+
 interface ApiEnvelope<T> {
   success: boolean;
   data: T;
@@ -214,6 +389,35 @@ export const logicTravelApi = {
       request<ApiEnvelope<Trip>>(`/trips/${tripId}/recalculate-all`, {
         method: 'POST',
       }),
+    getPdfPreviewData: (tripId: string, payload: PdfRenderPayload = {}) =>
+      request<ApiEnvelope<ItineraryPdfViewModel>>(`/trips/${tripId}/pdf/preview-data`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    renderPdf: (tripId: string, payload: PdfRenderPayload = {}) =>
+      request<ApiEnvelope<RenderPdfResponse>>(`/trips/${tripId}/pdf/render`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    listPdfDocuments: (tripId: string) =>
+      request<ApiEnvelope<ItineraryDocument[]>>(`/trips/${tripId}/pdf/documents`),
+    downloadPdfDocument: async (tripId: string, documentId: string): Promise<Blob> => {
+      const response = await fetch(`${API_BASE_URL}/trips/${tripId}/pdf/documents/${documentId}/download`, {
+        method: 'GET',
+        headers: {
+          ...getAuthHeaders(),
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        handleAuthError(response);
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || 'Failed to download PDF');
+      }
+
+      return response.blob();
+    },
   },
   logic: {
     reorderAndRecalculate: (payload: {

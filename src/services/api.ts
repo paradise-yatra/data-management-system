@@ -1176,7 +1176,31 @@ export interface TourPackageRecord {
   updatedAt: string;
 }
 
+export interface QualityCheckItem {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+  category: string;
+  updatedAt: string;
+  missingFields: string[];
+  issueCount: number;
+}
+
 export const packagesAPI = {
+  getQualityCheck: async (): Promise<QualityCheckItem[]> => {
+    const response = await fetch(`${API_BASE_URL}/packages/quality-check`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch quality check data');
+    }
+    const data = await response.json();
+    return data.data;
+  },
+
   getAll: async (category?: string): Promise<TourPackageRecord[]> => {
     const url = category ? `${API_BASE_URL}/packages?category=${category}` : `${API_BASE_URL}/packages`;
     const response = await fetch(url, {
@@ -1593,4 +1617,164 @@ export const telecallerTrashAPI = {
     }
     return response.json();
   }
+};
+
+// Header Form Submissions API
+export interface HeaderFormSubmissionRecord {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  destination: string;
+  budget: string;
+  travelDate: string;
+  message: string;
+  newsletter: boolean;
+  status: 'new' | 'contacted' | 'converted' | 'closed';
+  notes: string;
+  source: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const headerFormSubmissionsAPI = {
+  // Get all submissions
+  getAll: async (params?: { status?: string; page?: number; limit?: number }): Promise<{
+    data: HeaderFormSubmissionRecord[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> => {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const url = `${API_BASE_URL}/header-form-submissions${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch submissions');
+    }
+    return response.json();
+  },
+
+  // Get a single submission
+  getById: async (id: string): Promise<{ data: HeaderFormSubmissionRecord }> => {
+    const response = await fetch(`${API_BASE_URL}/header-form-submissions/${id}`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch submission');
+    }
+    return response.json();
+  },
+
+  // Update submission status/notes
+  update: async (id: string, data: { status?: string; notes?: string }): Promise<{ data: HeaderFormSubmissionRecord }> => {
+    const response = await fetch(`${API_BASE_URL}/header-form-submissions/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update submission');
+    }
+    return response.json();
+  },
+
+  // Delete a submission
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/header-form-submissions/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete submission');
+    }
+  },
+
+  // Get submission stats
+  getStats: async (): Promise<{ total: number; new: number; contacted: number; converted: number; closed: number }> => {
+    const response = await fetch(`${API_BASE_URL}/header-form-submissions/stats`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch stats');
+    }
+    return response.json();
+  },
+};
+
+// Newsletter API
+export interface NewsletterSubmissionRecord {
+  _id: string;
+  email: string;
+  source: string;
+  status: 'active' | 'unsubscribed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const newsletterAPI = {
+  getAll: async (params?: { status?: string; page?: number; limit?: number }): Promise<{
+    data: NewsletterSubmissionRecord[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> => {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const url = `${API_BASE_URL}/newsletter${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await fetch(url, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch newsletter submissions');
+    }
+    return response.json();
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/newsletter/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete submission');
+    }
+  },
+
+  getStats: async (): Promise<{ total: number; active: number; unsubscribed: number }> => {
+    const response = await fetch(`${API_BASE_URL}/newsletter/stats`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch stats');
+    }
+    return response.json();
+  },
 };

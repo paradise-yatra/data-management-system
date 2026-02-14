@@ -35,6 +35,8 @@ import telecallerTrashRoutes from './routes/telecallerTrash.js';
 import departmentsRoutes from './routes/departments.js';
 import backupsRoutes from './routes/backups.js';
 import notificationsRoutes from './routes/notifications.js';
+import headerFormSubmissionsRoutes from './routes/headerFormSubmissions.js';
+import newsletterRoutes from './routes/newsletterRoutes.js';
 import { authenticateToken } from './middleware/auth.js';
 
 const app = express();
@@ -91,7 +93,7 @@ app.use('/api/candidates', authenticateToken, candidatesRoutes);
 app.use('/api/interactions', authenticateToken, interactionsRoutes);
 app.use('/api/interviews', authenticateToken, interviewsRoutes);
 app.use('/api/tour-categories', tourCategoriesRoutes);
-app.use('/api/packages', packageRoutes);
+app.use('/api/packages', packageRoutes); // Public & Protected routes
 app.use('/api/destinations', destinationRoutes);
 app.use('/api/rbac', rbacRoutes);
 app.use('/api/places', placesRoutes);
@@ -108,6 +110,9 @@ app.use('/api/telecaller-trash', telecallerTrashRoutes);
 app.use('/api/departments', departmentsRoutes);
 app.use('/api/backups', authenticateToken, backupsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+// Header Form Submissions
+app.use('/api/header-form-submissions', headerFormSubmissionsRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -17,6 +17,8 @@ const upload = multer({
 // We'll protect all these routes
 // Public routes
 router.get('/public', packageController.getPublicPackages);
+router.get('/search', packageController.searchAll);
+router.get('/quality-check', packageController.getQualityCheck); // New route
 router.get('/public/:slug', packageController.getPackageBySlug);
 
 // Protected routes

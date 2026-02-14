@@ -20,6 +20,9 @@ import Packages from "./pages/voya-trail/packages/Packages";
 import PackageCategory from "./pages/voya-trail/packages/PackageCategory";
 import PackageForm from "./pages/voya-trail/packages/PackageForm";
 import Destinations from "./pages/voya-trail/packages/Destinations";
+import QualityControl from "./pages/voya-trail/packages/QualityControl";
+import HeaderFormSubmissions from "./pages/voya-trail/HeaderFormSubmissions";
+import NewsletterSubmissions from "./pages/voya-trail/NewsletterSubmissions";
 import RBACPage, { RBACRolesContent } from "./pages/RBAC";
 import { AuthLogs } from "./pages/AuthLogs";
 import { UserManagementPanel } from "@/components/user-management/UserManagementPanel";
@@ -207,6 +210,14 @@ const App = () => (
                   }
                 />
                 <Route
+                  path="/voya-trail/packages/quality-control"
+                  element={
+                    <ProtectedRoute resourceKey="voya_trail_packages" requiredLevel="view">
+                      <QualityControl />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/voya-trail/packages/new"
                   element={
                     <ProtectedRoute resourceKey="voya_trail_package_form" requiredLevel="view">
@@ -243,6 +254,22 @@ const App = () => (
                   element={
                     <ProtectedRoute resourceKey="voya_trail_package_form" requiredLevel="view">
                       <PackageForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/voya-trail/form-submissions"
+                  element={
+                    <ProtectedRoute resourceKey="voya_trail" requiredLevel="view">
+                      <HeaderFormSubmissions />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/voya-trail/newsletter"
+                  element={
+                    <ProtectedRoute resourceKey="voya_trail" requiredLevel="view">
+                      <NewsletterSubmissions />
                     </ProtectedRoute>
                   }
                 />

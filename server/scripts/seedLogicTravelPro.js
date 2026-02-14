@@ -7,6 +7,7 @@ import TripVersion from '../models/TripVersion.js';
 import RouteCache from '../models/RouteCache.js';
 import PlaceClosure from '../models/PlaceClosure.js';
 import LogicRunLog from '../models/LogicRunLog.js';
+import ItineraryDocument from '../models/ItineraryDocument.js';
 import { seedDefaultItineraryBuilderSettings } from '../services/itineraryBuilderSettingsService.js';
 
 dotenv.config();
@@ -153,6 +154,7 @@ async function resetCollections() {
     RouteCache.deleteMany({}),
     PlaceClosure.deleteMany({}),
     LogicRunLog.deleteMany({}),
+    ItineraryDocument.deleteMany({}),
   ]);
 }
 
@@ -234,4 +236,3 @@ async function run() {
 }
 
 run();
-

@@ -74,6 +74,7 @@ const pathToResourceKey: Record<string, string> = {
     '/voya-trail/packages': 'voya_trail_packages',
     '/voya-trail/packages/category': 'voya_trail_category',
     '/voya-trail/packages/destinations': 'voya_trail_destinations',
+    '/voya-trail/packages/quality-control': 'voya_trail_packages',
     '/rbac': 'rbac_system',
     '/rbac/roles': 'rbac_system',
     '/rbac/users': 'rbac_system',
@@ -259,8 +260,19 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
             subItems: [
                 { label: 'Packages', icon: <Package className="h-3.5 w-3.5" />, path: '/voya-trail/packages' },
                 { label: 'Category', icon: <Tags className="h-3.5 w-3.5" />, path: '/voya-trail/packages/category' },
-                { label: 'Destinations', icon: <MapPin className="h-3.5 w-3.5" />, path: '/voya-trail/packages/destinations' }
+                { label: 'Destinations', icon: <MapPin className="h-3.5 w-3.5" />, path: '/voya-trail/packages/destinations' },
+                { label: 'Quality Control', icon: <ShieldCheck className="h-3.5 w-3.5" />, path: '/voya-trail/packages/quality-control' }
             ]
+        },
+        {
+            label: 'Form Submissions',
+            icon: <FileText className="h-5 w-5" />,
+            path: '/voya-trail/form-submissions',
+        },
+        {
+            label: 'Newsletter',
+            icon: <Megaphone className="h-5 w-5" />,
+            path: '/voya-trail/newsletter',
         },
         {
             label: 'Blog',

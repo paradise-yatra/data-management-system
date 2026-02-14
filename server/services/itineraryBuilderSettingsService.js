@@ -6,6 +6,18 @@ const DEFAULTS = {
   route_cache_ttl_hours: 168,
   logic_timezone: 'Asia/Kolkata',
   osrm_base_url: process.env.OSRM_BASE_URL || 'https://router.project-osrm.org',
+  pdf_rendering_enabled: true,
+  pdf_currency_code: 'INR',
+  pdf_locale: 'en-IN',
+  pdf_timezone: 'Asia/Kolkata',
+  pdf_default_gst_percent: 5,
+  pdf_default_markup_percent: 0,
+  pdf_agency_name: 'Paradise Yatra',
+  pdf_agency_phone: '',
+  pdf_agency_email: '',
+  pdf_agency_website: '',
+  pdf_terms:
+    'Rates are indicative and subject to availability at confirmation time. Standard cancellation policy applies.',
 };
 
 export async function getSettingValue(key, fallbackValue = undefined) {
@@ -52,4 +64,3 @@ export async function seedDefaultItineraryBuilderSettings(updatedBy = null) {
 }
 
 export { DEFAULTS as ITINERARY_BUILDER_SETTING_DEFAULTS };
-

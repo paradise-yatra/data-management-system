@@ -30,11 +30,13 @@ import { logicTravelApi } from '@/services/logicTravelApi';
 import { InventoryList } from '@/components/inventory/InventoryList';
 import { DayTimeline } from '@/components/timeline/DayTimeline';
 import { TripMap } from '@/components/map/TripMap';
+import { PdfPreviewPanel } from '@/components/itinerary-builder/PdfPreviewPanel';
 import { PlacesAdminPanel } from '@/components/itinerary-admin/PlacesAdminPanel';
 import { ClosuresAdminPanel } from '@/components/itinerary-admin/ClosuresAdminPanel';
 import { SettingsAdminPanel } from '@/components/itinerary-admin/SettingsAdminPanel';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTripStore } from '@/store/useTripStore';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const DEFAULT_NEW_TRIP_NAME = 'Untitled Logic Trip';
 
@@ -189,20 +191,24 @@ export const TripBuilder = () => {
     }
   }, [currentTrip?._id, currentTrip?.startDate, sortedDays, activeDayIndex]);
 
-  const recalculateActiveDay = async () => {
-    if (!activeDay) return;
+  const recalculateDayByIndex = async (dayIndex: number) => {
+    const latestState = useTripStore.getState();
+    const latestTrip = latestState.currentTrip;
+    const latestDay = latestState.days.find((day) => day.dayIndex === dayIndex);
+    if (!latestDay) return;
+
     try {
       const response = await logicTravelApi.logic.reorderAndRecalculate({
-        tripId: currentTrip?._id,
-        dayIndex: activeDay.dayIndex,
-        date: activeDay.date,
-        events: activeDay.events.map((event, index) => ({
+        tripId: latestTrip?._id,
+        dayIndex: latestDay.dayIndex,
+        date: latestDay.date,
+        events: latestDay.events.map((event, index) => ({
           placeId: event.placeId,
           order: index,
         })),
       });
 
-      applyScheduledEvents(activeDay.dayIndex, response.data.events || []);
+      applyScheduledEvents(latestDay.dayIndex, response.data.events || []);
       const warnings = response.data.warnings || [];
       if (warnings.length > 0) {
         toast.warning(`Recalculated with ${warnings.length} warning(s)`);
@@ -298,7 +304,7 @@ export const TripBuilder = () => {
     if (activeId.startsWith('place:') && (overId.startsWith('day:') || overId.startsWith('event:'))) {
       const placeId = activeId.replace('place:', '');
       addEvent(activeDay.dayIndex, placeId);
-      await recalculateActiveDay();
+      await recalculateDayByIndex(activeDay.dayIndex);
       return;
     }
 
@@ -306,7 +312,7 @@ export const TripBuilder = () => {
       const activeClientId = activeId.replace('event:', '');
       const overClientId = overId.replace('event:', '');
       reorderEvents(activeDay.dayIndex, activeClientId, overClientId);
-      await recalculateActiveDay();
+      await recalculateDayByIndex(activeDay.dayIndex);
     }
   };
 
@@ -347,7 +353,10 @@ export const TripBuilder = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => recalculateActiveDay()}
+                      onClick={() => {
+                        if (!activeDay) return;
+                        recalculateDayByIndex(activeDay.dayIndex);
+                      }}
                       disabled={!activeDay || loading}
                       className="gap-2"
                     >
@@ -467,12 +476,23 @@ export const TripBuilder = () => {
                     onRemoveEvent={(eventClientId) => {
                       if (!activeDay) return;
                       removeEvent(activeDay.dayIndex, eventClientId);
-                      recalculateActiveDay();
+                      recalculateDayByIndex(activeDay.dayIndex);
                     }}
                   />
                 </div>
                 <div className="xl:col-span-4">
-                  <TripMap day={activeDay} placesById={placesById} />
+                  <Tabs defaultValue="map" className="h-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="map">Map</TabsTrigger>
+                      <TabsTrigger value="pdf">PDF Preview</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="map" className="mt-3 h-[calc(100%-2.5rem)]">
+                      <TripMap day={activeDay} placesById={placesById} />
+                    </TabsContent>
+                    <TabsContent value="pdf" className="mt-3 h-[calc(100%-2.5rem)]">
+                      <PdfPreviewPanel tripId={currentTrip?._id || null} draftDays={sortedDays} />
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </div>
             </DndContext>

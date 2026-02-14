@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.local
 .env.production
+
+# Generated itinerary PDFs and fixtures
+server/storage/
