@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { packagesAPI } from '@/services/api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { optimizeCloudinaryUrl } from '@/lib/cloudinary';
 
 interface ImageUploadProps {
     value: string[];
@@ -104,7 +105,7 @@ export function ImageUpload({
                             </Button>
                         </div>
                         <img
-                            src={url}
+                            src={optimizeCloudinaryUrl(url, { width: 400 })}
                             alt="Uploaded"
                             className="object-cover w-full h-full"
                         />

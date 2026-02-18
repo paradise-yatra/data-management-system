@@ -33,6 +33,7 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { optimizeCloudinaryUrl } from "@/lib/cloudinary";
 
 const formSchema = z.object({
     title: z.string().min(1, "Title is required"),
@@ -206,7 +207,7 @@ export default function AddBlog() {
                                 >
                                     {watch("image") ? (
                                         <img
-                                            src={watch("image")}
+                                            src={optimizeCloudinaryUrl(watch("image") || "", { width: 400 })}
                                             className="w-full h-full object-cover rounded-lg"
                                             alt="Featured"
                                         />
