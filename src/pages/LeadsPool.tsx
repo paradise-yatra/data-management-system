@@ -37,7 +37,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuLabel,
 } from '@/components/animate-ui/components/radix/dropdown-menu';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export default function LeadsPool() {
     const { user } = useAuth();
@@ -187,7 +187,7 @@ export default function LeadsPool() {
         }
     }
 
-    const handleExport = () => {
+    const handleExport = async () => {
         if (filteredLeads.length === 0) return toast({ title: 'Nothing to export', variant: 'destructive' });
         const data = filteredLeads.map(l => ({
             Name: l.leadName,
@@ -199,10 +199,25 @@ export default function LeadsPool() {
             AssignedTo: typeof l.assignedTo === 'object' ? l.assignedTo?.name : 'Unassigned',
             Date: l.dateAdded
         }));
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Leads');
-        XLSX.writeFile(wb, `leads_pool_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Leads');
+
+        if (data.length > 0) {
+            worksheet.columns = Object.keys(data[0]).map(key => ({ header: key, key }));
+        }
+
+        data.forEach(row => {
+            worksheet.addRow(row);
+        });
+
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `leads_pool_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(a.href);
     };
 
     return (
