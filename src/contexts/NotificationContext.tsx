@@ -31,7 +31,23 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+const resolvedSocketUrl = (() => {
+    if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
+
+    // If API URL is absolute (e.g. https://api.example.com/api), derive socket host from it.
+    if (/^https?:\/\//i.test(API_BASE_URL)) {
+        try {
+            const parsed = new URL(API_BASE_URL);
+            return `${parsed.protocol}//${parsed.host}`;
+        } catch {
+            // Ignore parse errors and fallback below.
+        }
+    }
+
+    // Relative API path: rely on same-origin + dev proxy (/socket.io).
+    return typeof window !== 'undefined' ? window.location.origin : '';
+})();
+const SOCKET_URL = resolvedSocketUrl;
 
 // Notification sound
 const playNotificationSound = () => {
@@ -195,6 +211,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             setIsConnected(false);
         });
 
+        socket.on('connect_error', (error) => {
+            console.error('Socket connect_error:', error.message);
+            setIsConnected(false);
+        });
+
         socket.on('new_notification', (notification: Notification) => {
             console.log('New notification received:', notification);
 
@@ -216,6 +237,29 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 } : undefined,
                 duration: 5000,
             });
+
+            // Show native browser notification
+            if ('Notification' in window && window.Notification.permission === 'granted') {
+                try {
+                    const browserNotif = new window.Notification(notification.title, {
+                        body: notification.message,
+                        icon: '/favicon.ico',
+                        tag: notification._id,
+                    });
+                    browserNotif.onclick = () => {
+                        window.focus();
+                        if (notification.link) window.location.href = notification.link;
+                        browserNotif.close();
+                    };
+                    setTimeout(() => browserNotif.close(), 8000);
+                } catch (e) {
+                    console.warn('Browser notification failed:', e);
+                }
+            } else if ('Notification' in window && window.Notification.permission === 'default') {
+                // Browsers may require user interaction for permission prompts.
+                // We still try here so users who allow non-gesture prompts get enabled.
+                window.Notification.requestPermission().catch(() => undefined);
+            }
         });
 
         socket.on('unread_count_update', ({ count }: { count: number }) => {

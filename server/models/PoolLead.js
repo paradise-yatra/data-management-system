@@ -1,22 +1,13 @@
 import mongoose from 'mongoose';
-import { getTelecallingConnection } from '../config/db.js';
+import { getLeadsPoolConnection } from '../config/db.js';
 
-const connection = getTelecallingConnection();
+const connection = getLeadsPoolConnection();
 
-const commentSchema = new mongoose.Schema({
-    text: { type: String, required: true, trim: true },
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    userName: { type: String, required: true },
-    mentions: [{ type: String }],
-    externalCommentId: { type: String, default: null },
-    sourceSystem: { type: String, enum: ['telecaller', 'pool'], default: 'telecaller' },
-    createdAt: { type: Date, default: Date.now },
-});
-
-const telecallerLeadSchema = new mongoose.Schema({
+const poolLeadSchema = new mongoose.Schema({
     uniqueId: {
         type: String,
         unique: true,
+        index: true,
     },
     leadName: {
         type: String,
@@ -26,6 +17,7 @@ const telecallerLeadSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true,
+        index: true,
     },
     email: {
         type: String,
@@ -40,13 +32,14 @@ const telecallerLeadSchema = new mongoose.Schema({
     },
     destination: {
         type: String,
+        trim: true,
     },
     duration: {
         type: String,
         trim: true,
     },
     travelDate: {
-        type: String, // String format for flexibility or ISO date
+        type: String,
     },
     budget: {
         type: Number,
@@ -64,18 +57,15 @@ const telecallerLeadSchema = new mongoose.Schema({
         type: String,
         enum: ['Hot', 'Cold', 'Not Reachable', 'Not Interested', 'Follow-up'],
         default: 'Hot',
+        index: true,
     },
     nextFollowUp: {
         type: String,
     },
     remarks: {
         type: String,
-        default: '',
         trim: true,
-    },
-    dateAdded: {
-        type: String,
-        required: true,
+        default: '',
     },
     addedBy: {
         type: String,
@@ -84,24 +74,70 @@ const telecallerLeadSchema = new mongoose.Schema({
     addedById: {
         type: String,
     },
+    dateAdded: {
+        type: String,
+        required: true,
+    },
     assignedTo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        default: null
+        default: null,
+        index: true,
     },
     assignedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        default: null
+        default: null,
     },
     assignedAt: {
         type: Date,
         default: null,
     },
-    comments: [commentSchema],
+    externalRefs: {
+        telecallerLeadId: {
+            type: String,
+            index: true,
+            default: null,
+        },
+        telecallerUniqueId: {
+            type: String,
+            index: true,
+            default: null,
+        },
+    },
+    syncMeta: {
+        lastSyncedAt: {
+            type: Date,
+            default: null,
+        },
+        lastSyncedFrom: {
+            type: String,
+            enum: ['pool', 'telecaller', null],
+            default: null,
+        },
+        lastEventId: {
+            type: String,
+            default: null,
+        },
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false,
+        index: true,
+    },
+    deletedAt: {
+        type: Date,
+        default: null,
+    },
+    deletedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+    },
     createdAt: {
         type: Date,
         default: Date.now,
+        index: true,
     },
     updatedAt: {
         type: Date,
@@ -109,11 +145,11 @@ const telecallerLeadSchema = new mongoose.Schema({
     },
 });
 
-// Update the updatedAt field and format name before saving
-telecallerLeadSchema.pre('save', function (next) {
+poolLeadSchema.index({ source: 1, 'externalRefs.telecallerLeadId': 1 }, { unique: false });
+
+poolLeadSchema.pre('save', function (next) {
     this.updatedAt = Date.now();
 
-    // Format leadName to Title Case
     if (this.leadName) {
         this.leadName = this.leadName
             .trim()
@@ -126,8 +162,7 @@ telecallerLeadSchema.pre('save', function (next) {
     next();
 });
 
-// Auto-increment uniqueId before saving a new document
-telecallerLeadSchema.pre('save', async function (next) {
+poolLeadSchema.pre('save', async function (next) {
     if (this.isNew && !this.uniqueId) {
         try {
             const LeadModel = this.constructor;
@@ -135,21 +170,21 @@ telecallerLeadSchema.pre('save', async function (next) {
 
             let nextNum = 1;
             if (lastLead && lastLead.uniqueId) {
-                const match = lastLead.uniqueId.match(/PYTC-(\d+)/);
+                const match = lastLead.uniqueId.match(/PYLP-(\d+)/);
                 if (match) {
                     nextNum = parseInt(match[1], 10) + 1;
                 }
             }
 
-            this.uniqueId = `PYTC-${nextNum}`;
+            this.uniqueId = `PYLP-${nextNum}`;
         } catch (error) {
-            console.error('Error generating uniqueId:', error);
-            this.uniqueId = 'PYTC-1'; // Fallback
+            console.error('Error generating pool uniqueId:', error);
+            this.uniqueId = `PYLP-${Date.now()}`;
         }
     }
     next();
 });
 
-const TelecallerLead = connection.model('TelecallerLead', telecallerLeadSchema, 'telecaller_leads');
+const PoolLead = connection.model('PoolLead', poolLeadSchema, 'pool_leads');
 
-export default TelecallerLead;
+export default PoolLead;

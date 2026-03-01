@@ -1,13 +1,17 @@
-export interface LeadComment {
+export interface LeadPoolComment {
     _id: string;
+    leadId: string;
     text: string;
     userId: string;
     userName: string;
     mentions: string[];
+    externalCommentId?: string | null;
+    sourceSystem?: 'pool' | 'telecaller';
     createdAt: string;
+    updatedAt?: string;
 }
 
-export interface TelecallerLeadRecord {
+export interface LeadPoolRecord {
     _id?: string;
     uniqueId?: string;
     leadName: string;
@@ -29,15 +33,16 @@ export interface TelecallerLeadRecord {
     assignedTo?: string | { _id: string, name: string };
     assignedBy?: string | { _id: string, name: string };
     assignedAt?: string;
-    comments?: LeadComment[];
     dateAdded?: string;
     createdAt?: string;
     updatedAt?: string;
+    isDeleted?: boolean;
 }
 
-export interface TelecallerLog {
+export interface LeadPoolActivity {
     _id: string;
-    action: 'CREATE' | 'UPDATE' | 'DELETE' | 'RESTORE' | 'TRANSFER' | 'BULK_ASSIGN';
+    leadId: string;
+    action: 'CREATE' | 'UPDATE' | 'DELETE' | 'RESTORE' | 'TRANSFER' | 'COMMENT' | 'SYNC';
     entityId: string;
     entityName?: string;
     performedBy: {
@@ -52,17 +57,3 @@ export interface TelecallerLog {
     timestamp: string;
 }
 
-export interface TelecallerTrashRecord {
-    _id: string;
-    originalId: string;
-    leadData: TelecallerLeadRecord;
-    deletedBy?: string;
-    deletedAt: string;
-}
-
-export type TelecallerFilterState = {
-    search: string;
-    statusFilter: string;
-    destinationFilter: string;
-    dateFilter: string;
-};

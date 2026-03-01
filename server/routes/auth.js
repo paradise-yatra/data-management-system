@@ -133,10 +133,26 @@ router.post('/change-password', authenticateToken, async (req, res) => {
 router.put('/theme', authenticateToken, async (req, res) => {
   try {
     const { themePreference } = req.body;
+    const validThemes = [
+      'light',
+      'dark',
+      'system',
+      'abyss',
+      'vscode-dark-plus',
+      'discord-graphite',
+      'nord',
+      'tokyo-night',
+      'catppuccin-mocha',
+      'one-dark-pro',
+      'dracula',
+      'gruvbox-dark',
+      'solarized-dark',
+      'synthwave',
+    ];
 
     // Validate input
-    if (!themePreference || !['light', 'dark', 'system'].includes(themePreference)) {
-      return res.status(400).json({ error: 'Valid theme preference (light, dark, or system) is required' });
+    if (!themePreference || !validThemes.includes(themePreference)) {
+      return res.status(400).json({ error: 'Valid theme preference is required' });
     }
 
     // Find user

@@ -1,5 +1,6 @@
 import { LeadRecord } from '@/types/record';
 import { TelecallerLeadRecord, TelecallerTrashRecord } from '@/types/telecaller';
+import { LeadPoolRecord, LeadPoolComment, LeadPoolActivity } from '@/types/leadsPool';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 console.log('API_BASE_URL:', API_BASE_URL);
@@ -111,7 +112,23 @@ export const authAPI = {
   },
 
   // Update theme preference
-  updateThemePreference: async (themePreference: 'light' | 'dark' | 'system'): Promise<void> => {
+  updateThemePreference: async (
+    themePreference:
+      | 'light'
+      | 'dark'
+      | 'system'
+      | 'abyss'
+      | 'vscode-dark-plus'
+      | 'discord-graphite'
+      | 'nord'
+      | 'tokyo-night'
+      | 'catppuccin-mocha'
+      | 'one-dark-pro'
+      | 'dracula'
+      | 'gruvbox-dark'
+      | 'solarized-dark'
+      | 'synthwave'
+  ): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/auth/theme`, {
       method: 'PUT',
       headers: getAuthHeaders(),
@@ -1568,6 +1585,252 @@ export const telecallerAPI = {
     if (!response.ok) {
       handleAuthError(response);
       throw new Error('Failed to fetch logs');
+    }
+    return response.json();
+  },
+
+  // Bulk assign leads to a user
+  bulkAssign: async (leadIds: string[], userId: string): Promise<{ message: string; modifiedCount: number }> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-leads/bulk-assign`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ leadIds, userId }),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to bulk assign leads');
+    }
+    return response.json();
+  },
+
+  // Bulk create leads (Excel import)
+  bulkCreate: async (leads: Partial<TelecallerLeadRecord>[]): Promise<{ message: string; success: number; failed: number; results: any }> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-leads/bulk-create`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ leads }),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to bulk create leads');
+    }
+    return response.json();
+  },
+
+  // Add a comment to a lead
+  addComment: async (leadId: string, text: string, mentions?: string[]): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-leads/${leadId}/comments`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ text, mentions }),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to add comment');
+    }
+    return response.json();
+  },
+
+  // Get comments for a lead
+  getComments: async (leadId: string): Promise<any[]> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-leads/${leadId}/comments`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch comments');
+    }
+    return response.json();
+  },
+
+  // Get activity log for a lead
+  getActivity: async (leadId: string): Promise<any[]> => {
+    const response = await fetch(`${API_BASE_URL}/telecaller-leads/${leadId}/activity`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch lead activity');
+    }
+    return response.json();
+  },
+};
+
+// Leads Pool API (separate from telecaller domain)
+export const leadsPoolAPI = {
+  getAll: async (): Promise<LeadPoolRecord[]> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch leads pool records');
+    }
+    return response.json();
+  },
+
+  create: async (data: Omit<LeadPoolRecord, '_id' | 'uniqueId'>): Promise<LeadPoolRecord> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to create lead');
+    }
+    return response.json();
+  },
+
+  update: async (id: string, data: Partial<LeadPoolRecord>): Promise<LeadPoolRecord> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to update lead');
+    }
+    return response.json();
+  },
+
+  transfer: async (id: string, userId: string): Promise<{ message: string; lead: LeadPoolRecord }> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool/${id}/transfer`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ userId }),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to transfer lead');
+    }
+    return response.json();
+  },
+
+  delete: async (id: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete lead');
+    }
+  },
+
+  restore: async (id: string): Promise<LeadPoolRecord> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool/${id}/restore`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to restore lead');
+    }
+    const result = await response.json();
+    return result.lead;
+  },
+
+  bulkAssign: async (leadIds: string[], userId: string): Promise<{ message: string; modifiedCount: number }> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool/bulk-assign`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ leadIds, userId }),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to bulk assign leads');
+    }
+    return response.json();
+  },
+
+  bulkCreate: async (leads: Partial<LeadPoolRecord>[]): Promise<{ message: string; success: number; failed: number; results: any }> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool/bulk-create`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ leads }),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to bulk create leads');
+    }
+    return response.json();
+  },
+
+  addComment: async (leadId: string, text: string, mentions?: string[]): Promise<LeadPoolComment> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool/${leadId}/comments`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ text, mentions }),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to add comment');
+    }
+    return response.json();
+  },
+
+  getComments: async (leadId: string): Promise<LeadPoolComment[]> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool/${leadId}/comments`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch comments');
+    }
+    return response.json();
+  },
+
+  getActivity: async (leadId: string): Promise<LeadPoolActivity[]> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool/${leadId}/activity`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      throw new Error('Failed to fetch lead activity');
+    }
+    return response.json();
+  },
+
+  processSyncOutbox: async (limit = 25): Promise<any> => {
+    const response = await fetch(`${API_BASE_URL}/leads-pool/sync/process`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ limit }),
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      handleAuthError(response);
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to process sync outbox');
     }
     return response.json();
   },

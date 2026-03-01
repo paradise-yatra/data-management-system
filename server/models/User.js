@@ -42,7 +42,22 @@ const userSchema = new mongoose.Schema({
   },
   themePreference: {
     type: String,
-    enum: ['light', 'dark', 'system'],
+    enum: [
+      'light',
+      'dark',
+      'system',
+      'abyss',
+      'vscode-dark-plus',
+      'discord-graphite',
+      'nord',
+      'tokyo-night',
+      'catppuccin-mocha',
+      'one-dark-pro',
+      'dracula',
+      'gruvbox-dark',
+      'solarized-dark',
+      'synthwave',
+    ],
     default: 'system',
   },
   createdAt: {

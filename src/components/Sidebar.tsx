@@ -29,7 +29,8 @@ import {
     UserCheck,
     DollarSign,
     TrendingUp,
-    Megaphone
+    Megaphone,
+    Inbox
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -54,6 +55,7 @@ interface NavItem {
     icon: React.ReactNode;
     path: string;
     badge?: number;
+    hoverMenu?: boolean;
     subItems?: {
         label: string;
         icon: React.ReactNode;
@@ -83,7 +85,8 @@ const pathToResourceKey: Record<string, string> = {
     '/sales': 'sales',
     '/sales/itinerary-builder': 'itinerary_builder',
     '/sales/telecaller': 'telecaller_panel',
-    '/sales/telecaller/assigned': 'telecaller_assigned',
+    '/sales/assigned': 'telecaller_assigned',
+    '/sales/leads-pool': 'leads_pool',
     '/telecaller': 'telecaller_panel',
     '/backups': 'backup_management',
 };
@@ -103,6 +106,8 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     });
 
     const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+    const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
     const [deniedItem, setDeniedItem] = useState<{ label: string; path: string } | null>(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -161,18 +166,18 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     const navItems: NavItem[] = [
         {
             label: 'Dashboard',
-            icon: <Home className="h-5 w-5" />,
+            icon: <Home className="h-4 w-4" />,
             path: '/',
         },
         {
             label: 'Notifications',
-            icon: <Bell className="h-5 w-5" />,
+            icon: <Bell className="h-4 w-4" />,
             path: '/notifications',
             badge: unreadCount
         },
         {
             label: 'Documents',
-            icon: <Files className="h-5 w-5" />,
+            icon: <Files className="h-4 w-4" />,
             path: '#',
         },
     ];
@@ -181,27 +186,27 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     const moduleItems = [
         {
             label: 'Sales',
-            icon: <TrendingUp className="h-5 w-5" />,
+            icon: <TrendingUp className="h-4 w-4" />,
             path: '/sales',
         },
         {
             label: 'Human Resource',
-            icon: <Users className="h-5 w-5" />,
+            icon: <Users className="h-4 w-4" />,
             path: '#',
         },
         {
             label: 'Database',
-            icon: <Database className="h-5 w-5" />,
+            icon: <Database className="h-4 w-4" />,
             path: '/data-management',
         },
         {
             label: 'Marketing',
-            icon: <Megaphone className="h-5 w-5" />,
+            icon: <Megaphone className="h-4 w-4" />,
             path: '#',
         },
         {
             label: 'Finance',
-            icon: <DollarSign className="h-5 w-5" />,
+            icon: <DollarSign className="h-4 w-4" />,
             path: '#',
         },
     ];
@@ -209,7 +214,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     const rbacItems: NavItem[] = [
         {
             label: 'RBAC System',
-            icon: <ShieldCheck className="h-5 w-5" />,
+            icon: <ShieldCheck className="h-4 w-4" />,
             path: '/rbac',
             subItems: [
                 { label: 'Roles', icon: <Shield className="h-3.5 w-3.5" />, path: '/rbac/roles' },
@@ -223,23 +228,29 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     const salesItems: NavItem[] = [
         {
             label: 'Sales Hub',
-            icon: <TrendingUp className="h-5 w-5" />,
+            icon: <TrendingUp className="h-4 w-4" />,
             path: '/sales',
         },
         {
+            label: 'Leads Pool',
+            icon: <Inbox className="h-4 w-4" />,
+            path: '/sales/leads-pool',
+        },
+        {
             label: 'Assigned to Me',
-            icon: <UserCheck className="h-5 w-5" />,
-            path: '/sales/telecaller/assigned',
+            icon: <UserCheck className="h-4 w-4" />,
+            path: '/sales/assigned',
         },
         {
             label: 'Itinerary Builder',
-            icon: <FileText className="h-5 w-5" />,
+            icon: <FileText className="h-4 w-4" />,
             path: '/sales/itinerary-builder',
         },
         {
             label: 'Telecaller',
-            icon: <PhoneCall className="h-5 w-5" />,
+            icon: <PhoneCall className="h-4 w-4" />,
             path: '#',
+            hoverMenu: true,
             subItems: [
                 { label: 'Dashboard', icon: <PhoneCall className="h-3.5 w-3.5" />, path: '/sales/telecaller' },
                 { label: 'Destinations', icon: <MapPin className="h-3.5 w-3.5" />, path: '/sales/telecaller/destinations' },
@@ -250,13 +261,14 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     const voyaTrailItems: NavItem[] = [
         {
             label: 'Voya Trail',
-            icon: <LayoutDashboard className="h-5 w-5" />,
+            icon: <LayoutDashboard className="h-4 w-4" />,
             path: '/voya-trail',
         },
         {
             label: 'Packages',
-            icon: <Package className="h-5 w-5" />,
+            icon: <Package className="h-4 w-4" />,
             path: '#',
+            hoverMenu: true,
             subItems: [
                 { label: 'Packages', icon: <Package className="h-3.5 w-3.5" />, path: '/voya-trail/packages' },
                 { label: 'Category', icon: <Tags className="h-3.5 w-3.5" />, path: '/voya-trail/packages/category' },
@@ -266,18 +278,19 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
         },
         {
             label: 'Form Submissions',
-            icon: <FileText className="h-5 w-5" />,
+            icon: <FileText className="h-4 w-4" />,
             path: '/voya-trail/form-submissions',
         },
         {
             label: 'Newsletter',
-            icon: <Megaphone className="h-5 w-5" />,
+            icon: <Megaphone className="h-4 w-4" />,
             path: '/voya-trail/newsletter',
         },
         {
             label: 'Blog',
-            icon: <FileText className="h-5 w-5" />,
+            icon: <FileText className="h-4 w-4" />,
             path: '/voya-trail/blogs',
+            hoverMenu: true,
             subItems: [
                 { label: 'All Blogs', icon: <FileText className="h-3.5 w-3.5" />, path: '/voya-trail/blogs' },
                 { label: 'Category', icon: <Tags className="h-3.5 w-3.5" />, path: '/voya-trail/blog/category' }
@@ -288,18 +301,13 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     const telecallerItems: NavItem[] = [
         {
             label: 'Dashboard',
-            icon: <PhoneCall className="h-5 w-5" />,
-            path: '/sales/telecaller',
-        },
-        {
-            label: 'Assigned to Me',
-            icon: <UserCheck className="h-5 w-5" />,
-            path: '/sales/telecaller/assigned',
+            icon: <PhoneCall className="h-4 w-4" />,
+            path: '/telecaller',
         },
         {
             label: 'Destinations',
-            icon: <MapPin className="h-5 w-5" />,
-            path: '/sales/telecaller/destinations',
+            icon: <MapPin className="h-4 w-4" />,
+            path: '/telecaller/destinations',
         },
     ];
 
@@ -345,6 +353,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
 
     const isRbacPanel = location.pathname.startsWith('/rbac');
     const isSalesPanel = location.pathname.startsWith('/sales') || project === 'sales';
+    const isVoyaTrailPanel = project === 'voya-trail' || location.pathname.startsWith('/voya-trail');
 
     const currentNavItems = (project === 'voya-trail')
         ? filterNavItems(voyaTrailItems)
@@ -415,6 +424,12 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     }, []);
 
     useEffect(() => {
+        if (isSettingsOpen) {
+            setIsProfileMenuOpen(false);
+        }
+    }, [isSettingsOpen]);
+
+    useEffect(() => {
         if (location.pathname === '/backups' && !isAdmin && user) {
             setDeniedItem({ label: 'Backups', path: '/backups' });
             navigate('/');
@@ -448,18 +463,18 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
     return (
         <motion.aside
             initial={false}
-            animate={{ width: isCollapsed ? 80 : 288 }}
+            animate={{ width: isCollapsed ? 72 : 252 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="flex flex-col gap-4 border-r border-border bg-card py-6 flex-shrink-0 hidden lg:flex relative h-screen sticky top-0"
+            className="flex flex-col gap-3 border-r border-border bg-card py-4 flex-shrink-0 hidden lg:flex relative h-screen sticky top-0"
         >
             {/* Collapse Toggle Button */}
             <Tooltip>
                 <TooltipTrigger asChild>
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="absolute -right-3 top-12 z-50 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground shadow-sm transition-colors"
+                        className="absolute -right-2.5 top-10 z-50 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-card text-muted-foreground hover:text-foreground shadow-sm transition-colors"
                     >
-                        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+                        {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
                     </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -468,11 +483,11 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
             </Tooltip>
 
             {/* User Profile Summary */}
-            <DropdownMenu>
+            <DropdownMenu open={isProfileMenuOpen} onOpenChange={(open) => setIsProfileMenuOpen(open)}>
                 <DropdownMenuTrigger asChild>
-                    <button className={cn("flex items-center gap-3 mb-6 transition-all duration-300 overflow-hidden hover:bg-accent/50 p-2 rounded-lg mx-4", isCollapsed ? "px-0 justify-center" : "px-2")}>
+                    <button className={cn("flex items-center gap-2.5 mb-4 transition-all duration-300 overflow-hidden hover:bg-accent/50 p-1.5 rounded-lg mx-3", isCollapsed ? "px-0 justify-center" : "px-2")}>
                         <div className="flex items-center justify-center flex-shrink-0">
-                            <Users className="h-6 w-6 text-primary" />
+                            <Users className="h-5 w-5 text-primary" />
                         </div>
                         <AnimatePresence mode="wait">
                             {!isCollapsed && (
@@ -484,12 +499,12 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                     transition={{ duration: 0.2 }}
                                     className="flex flex-col items-start overflow-hidden"
                                 >
-                                    <h1 className="text-foreground text-base font-semibold leading-tight truncate">{user?.name || 'User'}</h1>
+                                    <h1 className="text-foreground text-sm font-semibold leading-tight truncate">{user?.name || 'User'}</h1>
                                     <p className="text-muted-foreground text-xs font-normal capitalize truncate">{user?.role || 'Administrator'}</p>
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        {!isCollapsed && <ChevronDown className="h-4 w-4 ml-auto text-muted-foreground" />}
+                        {!isCollapsed && <ChevronDown className="h-3.5 w-3.5 ml-auto text-muted-foreground" />}
                     </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align={isCollapsed ? "center" : "start"} className="w-56 ml-2">
@@ -516,9 +531,6 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                             </kbd>
                         </span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleNavigate('/users', 'Manage Users')} className="cursor-pointer border-0 hover:border-0 focus:border-0 focus:outline-none">
-                        Manage Users
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleNavigate('/rbac', 'RBAC System')} className="cursor-pointer border-0 hover:border-0 focus:border-0 focus:outline-none">
                         RBAC System
                     </DropdownMenuItem>
@@ -528,6 +540,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                     <DropdownMenuItem
                         onSelect={(e) => {
                             e.preventDefault();
+                            setIsProfileMenuOpen(false);
                             setIsSettingsOpen(true);
                         }}
                         className="cursor-pointer border-0 hover:border-0 focus:border-0 focus:outline-none"
@@ -545,22 +558,120 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
             </DropdownMenu>
 
             {/* Navigation Links */}
-            <nav className={cn("flex flex-col gap-2 flex-1 px-4", isCollapsed && "items-center")}>
-                {currentNavItems.map((item) => (
-                    <div key={item.label} className="flex flex-col gap-1 w-full">
-                        {isCollapsed ? (
-                            <Tooltip>
-                                <TooltipTrigger asChild>
+            <nav className={cn("flex flex-col gap-1.5 flex-1 px-3", isCollapsed && "items-center")}>
+                {currentNavItems.map((item) => {
+                    const useHover = item.hoverMenu && (isSalesPanel || isVoyaTrailPanel) && item.subItems && item.subItems.length > 0;
+                    return (
+                        <div key={item.label} className="flex flex-col gap-0.5 w-full">
+                            {useHover ? (
+                                <DropdownMenu
+                                    open={hoveredMenu === item.label}
+                                    onOpenChange={(open) => setHoveredMenu(open ? item.label : null)}
+                                >
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+                                            onMouseEnter={() => setHoveredMenu(item.label)}
+                                            onMouseLeave={() => setHoveredMenu(null)}
+                                            onClick={() => {
+                                                const defaultPath = item.subItems?.[0];
+                                                if (defaultPath) {
+                                                    handleNavigate(defaultPath.path, defaultPath.label);
+                                                }
+                                            }}
+                                            className={cn(
+                                                "cursor-pointer flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all group w-full text-left",
+                                                isActive(item)
+                                                    ? "bg-primary/10 border-l-2 border-primary"
+                                                    : "hover:bg-accent"
+                                            )}
+                                            aria-label={item.label}
+                                        >
+                                            <div className={cn(
+                                                "flex-shrink-0 transition-colors",
+                                                isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                            )}>
+                                                {item.icon}
+                                            </div>
+                                            {!isCollapsed && (
+                                                <div className="flex items-center flex-1 gap-1 overflow-hidden">
+                                                    <p className={cn(
+                                                        "text-sm font-medium leading-normal whitespace-nowrap",
+                                                        isActive(item) ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                                                    )}>
+                                                        {item.label}
+                                                    </p>
+                                                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                                </div>
+                                            )}
+                                            {isCollapsed && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        align="start"
+                                        side="right"
+                                        sideOffset={6}
+                                        className="w-44 border border-border bg-card p-1 rounded-xl shadow-xl"
+                                        onMouseEnter={() => setHoveredMenu(item.label)}
+                                        onMouseLeave={() => setHoveredMenu(null)}
+                                    >
+                                        {item.subItems.map(subItem => (
+                                            <DropdownMenuItem
+                                                key={subItem.label}
+                                                className="cursor-pointer flex items-center gap-2 text-sm text-muted-foreground px-3 py-2 rounded-md hover:bg-accent transition-colors"
+                                                onSelect={(event) => {
+                                                    event.preventDefault();
+                                                    setHoveredMenu(null);
+                                                    handleNavigate(subItem.path, subItem.label);
+                                                }}
+                                            >
+                                                {subItem.icon}
+                                                {subItem.label}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : isCollapsed ? (
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            onClick={() => {
+                                                handleNavigate(item.path, item.label);
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all group w-full text-left",
+                                                isActive(item)
+                                                    ? "bg-primary/10 border-l-2 border-primary"
+                                                    : "hover:bg-accent",
+                                                "justify-center px-0 w-9 border-l-0"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "flex-shrink-0 transition-colors",
+                                                isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                                            )}>
+                                                {item.icon}
+                                            </div>
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right">
+                                        <p>{item.label}</p>
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : (
+                                <>
                                     <button
                                         onClick={() => {
-                                            handleNavigate(item.path, item.label);
+                                            if (item.subItems && !isCollapsed) {
+                                                toggleMenu(item.label);
+                                            } else {
+                                                handleNavigate(item.path, item.label);
+                                            }
                                         }}
                                         className={cn(
-                                            "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                            "flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all group w-full text-left",
                                             isActive(item)
                                                 ? "bg-primary/10 border-l-2 border-primary"
-                                                : "hover:bg-accent",
-                                            "justify-center px-0 w-10 border-l-0"
+                                                : "hover:bg-accent"
                                         )}
                                     >
                                         <div className={cn(
@@ -569,98 +680,70 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                         )}>
                                             {item.icon}
                                         </div>
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="right">
-                                    <p>{item.label}</p>
-                                </TooltipContent>
-                            </Tooltip>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={() => {
-                                        if (item.subItems && !isCollapsed) {
-                                            toggleMenu(item.label);
-                                        } else {
-                                            handleNavigate(item.path, item.label);
-                                        }
-                                    }}
-                                    className={cn(
-                                        "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
-                                        isActive(item)
-                                            ? "bg-primary/10 border-l-2 border-primary"
-                                            : "hover:bg-accent"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "flex-shrink-0 transition-colors",
-                                        isActive(item) ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                                    )}>
-                                        {item.icon}
-                                    </div>
-                                    <motion.div
-                                        key={`${item.label}-label`}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -10 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="flex items-center flex-1 overflow-hidden"
-                                    >
-                                        <p className={cn(
-                                            "text-sm font-medium leading-normal whitespace-nowrap",
-                                            isActive(item) ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
-                                        )}>
-                                            {item.label}
-                                        </p>
-                                        {item.badge && (
-                                            <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                        {item.subItems && (
-                                            <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", expandedMenus.includes(item.label) ? "rotate-180" : "")} />
-                                        )}
-                                    </motion.div>
-                                </button>
-                                <AnimatePresence>
-                                    {item.subItems && expandedMenus.includes(item.label) && (
                                         <motion.div
-                                            initial={{ height: 0, opacity: 0 }}
-                                            animate={{ height: 'auto', opacity: 1 }}
-                                            exit={{ height: 0, opacity: 0 }}
-                                            className="overflow-hidden flex flex-col pl-9 gap-1"
+                                            key={`${item.label}-label`}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -10 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="flex items-center flex-1 overflow-hidden"
                                         >
-                                            {item.subItems.map((subItem) => (
-                                                <button
-                                                    key={subItem.label}
-                                                    onClick={() => handleNavigate(subItem.path, subItem.label)}
-                                                    className={cn(
-                                                        "text-sm py-2 text-left flex items-center gap-2 transition-colors",
-                                                        location.pathname === subItem.path
-                                                            ? "text-primary font-medium"
-                                                            : "text-muted-foreground hover:text-foreground"
-                                                    )}
-                                                >
-                                                    {subItem.icon}
-                                                    {subItem.label}
-                                                </button>
-                                            ))}
+                                            <p className={cn(
+                                                "text-sm font-medium leading-normal whitespace-nowrap",
+                                                isActive(item) ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+                                            )}>
+                                                {item.label}
+                                            </p>
+                                            {item.badge && (
+                                                <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                                    {item.badge}
+                                                </span>
+                                            )}
+                                            {item.subItems && (
+                                                <ChevronDown className={cn("ml-auto h-3.5 w-3.5 transition-transform", expandedMenus.includes(item.label) ? "rotate-180" : "")} />
+                                            )}
                                         </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </>
-                        )}
-                    </div>
-                ))}
+                                    </button>
+                                    <AnimatePresence>
+                                        {item.subItems && expandedMenus.includes(item.label) && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: 'auto', opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                className="overflow-hidden flex flex-col pl-8 gap-0.5"
+                                            >
+                                                {item.subItems.map((subItem) => (
+                                                    <button
+                                                        key={subItem.label}
+                                                        onClick={() => handleNavigate(subItem.path, subItem.label)}
+                                                        className={cn(
+                                                            "text-sm py-1.5 text-left flex items-center gap-2 transition-colors",
+                                                            location.pathname === subItem.path
+                                                                ? "text-primary font-medium"
+                                                                : "text-muted-foreground hover:text-foreground"
+                                                        )}
+                                                    >
+                                                        {subItem.icon}
+                                                        {subItem.label}
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </>
+                            )}
+                        </div>
+                    );
+                })}
 
                 {currentModuleItems.length > 0 && (
                     <>
-                        <div className="my-2 border-t border-border/50 w-full"></div>
+                        <div className="my-1.5 border-t border-border/50 w-full"></div>
                         {!isCollapsed && (
                             <motion.p
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap"
+                                className="px-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5 whitespace-nowrap"
                             >
                                 Modules
                             </motion.p>
@@ -673,11 +756,11 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                         <button
                                             onClick={() => handleNavigate(item.path, item.label)}
                                             className={cn(
-                                                "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                                "flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all group w-full text-left",
                                                 isActive(item)
                                                     ? "bg-primary/10 border-l-2 border-primary"
                                                     : "hover:bg-accent",
-                                                "justify-center px-0 w-10 border-l-0"
+                                                "justify-center px-0 w-9 border-l-0"
                                             )}
                                         >
                                             <div className={cn(
@@ -697,7 +780,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                     key={item.label}
                                     onClick={() => handleNavigate(item.path, item.label)}
                                     className={cn(
-                                        "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                        "flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all group w-full text-left",
                                         isActive(item)
                                             ? "bg-primary/10 border-l-2 border-primary"
                                             : "hover:bg-accent"
@@ -730,19 +813,19 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
 
                 {currentRbacItems.length > 0 && (
                     <>
-                        <div className="my-2 border-t border-border/50 w-full"></div>
+                        <div className="my-1.5 border-t border-border/50 w-full"></div>
                         {!isCollapsed && (
                             <motion.p
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
-                                className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 whitespace-nowrap"
+                                className="px-2.5 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-0.5 whitespace-nowrap"
                             >
                                 RBAC
                             </motion.p>
                         )}
 
                         {currentRbacItems.map((item) => (
-                            <div key={item.label} className="flex flex-col gap-1 w-full">
+                            <div key={item.label} className="flex flex-col gap-0.5 w-full">
                                 {isCollapsed ? (
                                     <Tooltip>
                                         <TooltipTrigger asChild>
@@ -751,11 +834,11 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                                     handleNavigate(item.path, item.label);
                                                 }}
                                                 className={cn(
-                                                    "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                                    "flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all group w-full text-left",
                                                     isActive(item)
                                                         ? "bg-primary/10 border-l-2 border-primary"
                                                         : "hover:bg-accent",
-                                                    "justify-center px-0 w-10 border-l-0"
+                                                    "justify-center px-0 w-9 border-l-0"
                                                 )}
                                             >
                                                 <div className={cn(
@@ -781,7 +864,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                                 }
                                             }}
                                             className={cn(
-                                                "flex items-center gap-3 px-3 py-3 rounded-lg transition-all group w-full text-left",
+                                                "flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg transition-all group w-full text-left",
                                                 isActive(item)
                                                     ? "bg-primary/10 border-l-2 border-primary"
                                                     : "hover:bg-accent"
@@ -808,7 +891,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                                     {item.label}
                                                 </p>
                                                 {item.subItems && (
-                                                    <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", expandedMenus.includes(item.label) ? "rotate-180" : "")} />
+                                                    <ChevronDown className={cn("ml-auto h-3.5 w-3.5 transition-transform", expandedMenus.includes(item.label) ? "rotate-180" : "")} />
                                                 )}
                                             </motion.div>
                                         </button>
@@ -818,14 +901,14 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
                                                     initial={{ height: 0, opacity: 0 }}
                                                     animate={{ height: 'auto', opacity: 1 }}
                                                     exit={{ height: 0, opacity: 0 }}
-                                                    className="overflow-hidden flex flex-col pl-9 gap-1"
+                                                    className="overflow-hidden flex flex-col pl-8 gap-0.5"
                                                 >
                                                     {item.subItems.map((subItem) => (
                                                         <button
                                                             key={subItem.label}
                                                             onClick={() => handleNavigate(subItem.path, subItem.label)}
                                                             className={cn(
-                                                                "text-sm py-2 text-left flex items-center gap-2 transition-colors",
+                                                                "text-sm py-1.5 text-left flex items-center gap-2 transition-colors",
                                                                 location.pathname === subItem.path
                                                                     ? "text-primary font-medium"
                                                                     : "text-muted-foreground hover:text-foreground"
@@ -902,3 +985,4 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
         </motion.aside>
     );
 };
+

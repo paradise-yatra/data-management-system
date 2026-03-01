@@ -8,7 +8,21 @@ export interface User {
   role: 'admin' | 'manager' | 'user';
   roleId?: string | null;
   isActive: boolean;
-  themePreference?: 'light' | 'dark' | 'system';
+  themePreference?:
+    | 'light'
+    | 'dark'
+    | 'system'
+    | 'abyss'
+    | 'vscode-dark-plus'
+    | 'discord-graphite'
+    | 'nord'
+    | 'tokyo-night'
+    | 'catppuccin-mocha'
+    | 'one-dark-pro'
+    | 'dracula'
+    | 'gruvbox-dark'
+    | 'solarized-dark'
+    | 'synthwave';
   createdAt: string;
   updatedAt: string;
 }

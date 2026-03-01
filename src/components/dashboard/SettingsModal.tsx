@@ -48,6 +48,23 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
         { id: 'appearance', label: 'Appearance', icon: <Settings className="h-4 w-4" /> },
     ];
 
+    const themeOptions = [
+        { id: 'light', label: 'Light', icon: <Sun className="h-6 w-6" />, color: 'bg-white' },
+        { id: 'dark', label: 'Dark', icon: <Moon className="h-6 w-6" />, color: 'bg-slate-950' },
+        { id: 'abyss', label: 'Abyss', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-slate-950 via-blue-900 to-cyan-700' },
+        { id: 'vscode-dark-plus', label: 'VS Code Dark+', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-[#1e1e1e] via-[#252526] to-[#007acc]' },
+        { id: 'discord-graphite', label: 'Discord Graphite', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-[#1e1f22] via-[#2b2d31] to-[#5865f2]' },
+        { id: 'nord', label: 'Nord', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-[#2e3440] via-[#3b4252] to-[#88c0d0]' },
+        { id: 'tokyo-night', label: 'Tokyo Night', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-[#1a1b26] via-[#24283b] to-[#7aa2f7]' },
+        { id: 'catppuccin-mocha', label: 'Catppuccin', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-[#1e1e2e] via-[#313244] to-[#89b4fa]' },
+        { id: 'one-dark-pro', label: 'One Dark Pro', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-[#282c34] via-[#353b45] to-[#61afef]' },
+        { id: 'dracula', label: 'Dracula', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-[#282a36] via-[#343746] to-[#bd93f9]' },
+        { id: 'gruvbox-dark', label: 'Gruvbox Dark', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-[#282828] via-[#3c3836] to-[#fabd2f]' },
+        { id: 'solarized-dark', label: 'Solarized Dark', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-[#002b36] via-[#073642] to-[#268bd2]' },
+        { id: 'synthwave', label: 'Synthwave', icon: <CircleDot className="h-6 w-6" />, color: 'bg-gradient-to-br from-[#241b2f] via-[#34294f] to-[#ff7edb]' },
+        { id: 'system', label: 'System', icon: <Monitor className="h-6 w-6" />, color: 'bg-gradient-to-br from-white to-slate-950' }
+    ] as const;
+
     const formatDate = (dateString?: string) => {
         if (!dateString) return 'N/A';
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -59,24 +76,24 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl h-[600px] p-0 gap-0 overflow-hidden border-border bg-background shadow-2xl">
+            <DialogContent className="max-w-3xl h-[85vh] max-h-[640px] min-h-[480px] p-0 gap-0 overflow-hidden border border-border bg-background shadow-lg">
                 <div className="flex h-full">
                     {/* Left Sidebar */}
-                    <div className="w-64 border-r border-border bg-muted/30 p-4 flex flex-col gap-2">
-                        <div className="flex items-center gap-2 px-2 mb-6">
+                    <div className="w-52 border-r border-border/50 bg-muted/30 p-3 flex flex-col gap-2.5">
+                        <div className="flex items-center gap-2 px-2 pb-4 border-b border-border/30">
                             <Settings className="h-5 w-5 text-primary" />
-                            <h2 className="font-semibold text-lg text-foreground">Settings</h2>
+                            <h2 className="font-semibold text-base text-foreground tracking-tight">Settings</h2>
                         </div>
                         {menuItems.map((item) => (
                             <button
                                 key={item.id}
                                 onClick={() => setActiveTab(item.id as TabType)}
-                                className={cn(
-                                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                                    activeTab === item.id
-                                        ? "bg-primary text-primary-foreground shadow-md"
-                                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                                )}
+                                        className={cn(
+                                            "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all",
+                                            activeTab === item.id
+                                                ? "bg-primary/10 text-foreground shadow-sm"
+                                                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                        )}
                             >
                                 {item.icon}
                                 {item.label}
@@ -95,7 +112,7 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                     </div>
 
                     {/* Right Content Area */}
-                    <div className="flex-1 overflow-y-auto p-8 relative bg-card/50">
+                        <div className="flex-1 overflow-y-auto p-6 relative bg-card/40">
                         <AnimatePresence mode="wait">
                             {activeTab === 'account' && (
                                 <motion.div
@@ -107,12 +124,12 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                                     className="space-y-8"
                                 >
                                     <div>
-                                        <h3 className="text-2xl font-bold text-foreground">My Account</h3>
-                                        <p className="text-muted-foreground text-sm mt-1">Manage your personal information and profile settings.</p>
+                                        <h3 className="text-xl font-semibold text-foreground">My Account</h3>
+                                        <p className="text-xs text-muted-foreground mt-1">Manage your personal information and profile settings.</p>
                                     </div>
 
                                     {/* Profile Image Section */}
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 p-6 rounded-2xl bg-muted/50 border border-border/50">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-2xl bg-muted/40 border border-border/40">
                                         <div className="relative group">
                                             <Avatar className="h-24 w-24 border-4 border-background shadow-xl">
                                                 <AvatarImage src="" />
@@ -120,22 +137,22 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                                                     {user?.name?.charAt(0) || 'U'}
                                                 </AvatarFallback>
                                             </Avatar>
-                                            <button className="absolute bottom-0 right-0 p-2 rounded-full bg-primary text-primary-foreground shadow-lg hover:scale-110 transition-transform group-hover:scale-105">
+                                            <button className="absolute bottom-0 right-0 p-1.5 rounded-full bg-primary text-primary-foreground shadow hover:scale-105 transition-transform">
                                                 <Camera className="h-4 w-4" />
                                             </button>
                                         </div>
-                                        <div className="space-y-2">
-                                            <h4 className="text-lg font-semibold text-foreground">Profile Picture</h4>
-                                            <p className="text-xs text-muted-foreground max-w-xs">JPG, GIF or PNG. Max size 2MB. Your avatar will be visible to all team members.</p>
+                                        <div className="space-y-1">
+                                            <h4 className="text-sm font-semibold text-foreground">Profile Picture</h4>
+                                            <p className="text-[11px] text-muted-foreground max-w-xs">JPG, GIF or PNG. Max size 2MB.</p>
                                             <div className="flex gap-2">
-                                                <Button size="sm" variant="outline" className="h-8 text-xs">Upload New</Button>
-                                                <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10">Remove</Button>
+                                                <Button size="sm" variant="outline" className="h-8 text-xs px-3">Upload</Button>
+                                                <Button size="sm" variant="ghost" className="h-8 text-xs px-3 text-destructive hover:text-destructive hover:bg-destructive/10">Remove</Button>
                                             </div>
                                         </div>
                                     </div>
 
                                     {/* Details Grid */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 py-2">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 py-2">
                                         <div className="space-y-1.5 border-b border-border/40 pb-3">
                                             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground/70 font-bold">Full Name</Label>
                                             <div className="flex items-center gap-3">
@@ -179,24 +196,24 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                                         </div>
                                     </div>
 
-                                    <div className="pt-4 border-t border-border/50 flex items-center justify-between">
-                                        <div className="flex flex-col">
-                                            <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                                                <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                Created on {formatDate(user?.createdAt)}
-                                            </p>
-                                            <p className="text-xs text-muted-foreground">Last updated {formatDate(user?.updatedAt)}</p>
+                                    <div className="pt-4 border-t border-border/50 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex-wrap">
+                                        <div className="space-y-1">
+                                                <p className="text-xs font-medium text-foreground flex items-center gap-2">
+                                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                    Created on {formatDate(user?.createdAt)}
+                                                </p>
+                                                <p className="text-[11px] text-muted-foreground">Last updated {formatDate(user?.updatedAt)}</p>
+                                            </div>
+                                            <Button
+                                                onClick={() => {
+                                                    toast.success('Changes saved successfully');
+                                                    onClose();
+                                                }}
+                                                className="bg-primary hover:bg-primary/90 shadow-md px-4 py-2 rounded-lg text-sm w-full sm:w-auto"
+                                            >
+                                                Save Changes
+                                            </Button>
                                         </div>
-                                        <Button
-                                            onClick={() => {
-                                                toast.success('Changes saved successfully');
-                                                onClose();
-                                            }}
-                                            className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
-                                        >
-                                            Save Changes
-                                        </Button>
-                                    </div>
                                 </motion.div>
                             )}
 
@@ -214,21 +231,18 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                                         <p className="text-muted-foreground text-sm mt-1">Customize how the CRM looks on your device.</p>
                                     </div>
 
-                                    <div className="space-y-6">
-                                        <Label className="text-lg font-semibold">Theme Preference</Label>
-                                        <div className="grid grid-cols-3 gap-4">
-                                            {[
-                                                { id: 'light', label: 'Light', icon: <Sun className="h-6 w-6" />, color: 'bg-white' },
-                                                { id: 'dark', label: 'Dark', icon: <Moon className="h-6 w-6" />, color: 'bg-slate-950' },
-                                                { id: 'system', label: 'System', icon: <Monitor className="h-6 w-6" />, color: 'bg-gradient-to-br from-white to-slate-950' }
-                                            ].map((t) => (
+                                    <div className="space-y-4">
+                                        <Label className="text-sm font-semibold">Theme Preference</Label>
+                                        <div className="max-h-[360px] overflow-y-auto pr-1">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                                            {themeOptions.map((t) => (
                                                 <button
                                                     key={t.id}
                                                     onClick={async () => {
                                                         if (isUpdatingTheme) return;
                                                         setIsUpdatingTheme(true);
                                                         try {
-                                                            await setTheme(t.id as 'light' | 'dark' | 'system');
+                                                            await setTheme(t.id);
                                                         } catch (error) {
                                                             console.error('Failed to update theme:', error);
                                                         } finally {
@@ -237,14 +251,14 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                                                     }}
                                                     disabled={isUpdatingTheme}
                                                     className={cn(
-                                                        "group flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all relative overflow-hidden",
+                                                        "group flex flex-col items-center gap-2 p-3 rounded-xl border transition-all relative overflow-hidden",
                                                         theme === t.id
                                                             ? "border-primary bg-primary/5 shadow-inner"
                                                             : "border-border/50 hover:border-border hover:bg-muted/50",
                                                         isUpdatingTheme && "opacity-50 cursor-not-allowed"
                                                     )}
                                                 >
-                                                    <div className={cn("w-full h-24 rounded-lg flex items-center justify-center border border-border shadow-sm mb-2", t.color)}>
+                                                    <div className={cn("w-full h-20 rounded-lg flex items-center justify-center border border-border shadow-sm mb-2", t.color)}>
                                                         <div className={cn(
                                                             "transition-transform duration-300 group-hover:scale-110",
                                                             theme === t.id ? "text-primary" : "text-muted-foreground"
@@ -265,6 +279,7 @@ export const SettingsModal = ({ isOpen, onClose }: SettingsModalProps) => {
                                                     )}
                                                 </button>
                                             ))}
+                                            </div>
                                         </div>
                                     </div>
 

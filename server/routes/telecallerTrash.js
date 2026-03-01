@@ -4,6 +4,7 @@ import TelecallerLead from '../models/TelecallerLead.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { createLog } from '../utils/logger.js';
 import { logTelecallerAction } from '../utils/telecallerLogger.js';
+import { enqueueLeadSyncEvent } from '../services/leadSyncService.js';
 
 const router = express.Router();
 
@@ -64,6 +65,18 @@ router.post('/restore/:id', async (req, res) => {
         const newLead = await TelecallerLead.findOne({ uniqueId: leadData.uniqueId });
         if (newLead) {
             await logTelecallerAction('RESTORE', newLead, req);
+
+            await enqueueLeadSyncEvent({
+                eventType: 'lead.restored',
+                sourceSystem: 'telecaller',
+                sourceLeadId: newLead._id.toString(),
+                sourceUniqueId: newLead.uniqueId || null,
+                payload: {
+                    lead: newLead.toObject(),
+                    updatedAt: newLead.updatedAt || new Date(),
+                },
+                actor: req.user,
+            });
         }
 
         res.json({ message: 'Lead restored successfully' });

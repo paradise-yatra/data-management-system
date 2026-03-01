@@ -177,4 +177,35 @@ export const getTelecallingConnection = () => {
   }
 };
 
+let leadsPoolConnection;
+
+export const getLeadsPoolConnection = () => {
+  if (leadsPoolConnection) {
+    return leadsPoolConnection;
+  }
+
+  if (!process.env.MONGODB_URI) {
+    console.error('MONGODB_URI is not defined in .env file');
+    return null;
+  }
+
+  try {
+    leadsPoolConnection = mongoose.createConnection(process.env.MONGODB_URI, {
+      dbName: 'Leads-Pool'
+    });
+
+    leadsPoolConnection.on('connected', () => {
+      console.log('Leads-Pool MongoDB Connected');
+    });
+
+    leadsPoolConnection.on('error', (err) => {
+      console.error('Leads-Pool MongoDB Connection Error:', err);
+    });
+
+    return leadsPoolConnection;
+  } catch (error) {
+    console.error('Error creating Leads-Pool DB connection:', error);
+    return null;
+  }
+};
 

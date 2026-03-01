@@ -11,8 +11,8 @@ export const logTelecallerAction = async (action, lead, req, details = {}) => {
     try {
         const user = req.user || { _id: null, name: 'System', role: 'System' };
 
-        // If lead doesn't have uniqueId yet (e.g. strict create failure), try fallback
-        const entityId = lead.uniqueId || lead._id?.toString() || 'UNKNOWN_ID';
+        // Always store Mongo _id so /:id/activity can query reliably.
+        const entityId = lead._id?.toString() || lead.uniqueId || 'UNKNOWN_ID';
         const entityName = lead.leadName || 'Unknown Lead';
 
         const logEntry = new TelecallerLog({
@@ -24,7 +24,10 @@ export const logTelecallerAction = async (action, lead, req, details = {}) => {
                 name: user.name,
                 role: user.role
             },
-            details
+            details: {
+                ...details,
+                entityUniqueId: lead.uniqueId || null,
+            }
         });
 
         await logEntry.save();
