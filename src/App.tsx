@@ -36,6 +36,8 @@ import Welcome from "./pages/Welcome";
 import { TripBuilder } from "./pages/itinerary-builder/TripBuilder";
 import BackupsPanel from "./pages/BackupsPanel";
 import Notifications from "./pages/Notifications";
+import LeadsPool from "./pages/LeadsPool";
+import ParadiseYatraDeploy from "./pages/ParadiseYatraDeploy";
 
 const queryClient = new QueryClient();
 
@@ -162,7 +164,7 @@ const App = () => (
                   }
                 />
                 <Route
-                  path="/sales/telecaller/assigned"
+                  path="/sales/assigned"
                   element={
                     <ProtectedRoute resourceKey="telecaller_assigned" requiredLevel="view">
                       <TelecallerPanel />
@@ -174,6 +176,31 @@ const App = () => (
                   element={
                     <ProtectedRoute resourceKey="telecaller_panel" requiredLevel="view">
                       <TelecallerDestinations />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Independent Telecaller Routes */}
+                <Route
+                  path="/telecaller"
+                  element={
+                    <ProtectedRoute resourceKey="telecaller_panel" requiredLevel="view">
+                      <TelecallerPanel />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/telecaller/destinations"
+                  element={
+                    <ProtectedRoute resourceKey="telecaller_panel" requiredLevel="view">
+                      <TelecallerDestinations />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/sales/leads-pool"
+                  element={
+                    <ProtectedRoute resourceKey="leads_pool" requiredLevel="view">
+                      <LeadsPool />
                     </ProtectedRoute>
                   }
                 />
@@ -270,6 +297,14 @@ const App = () => (
                   element={
                     <ProtectedRoute resourceKey="voya_trail" requiredLevel="view">
                       <NewsletterSubmissions />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/paradise-yatra-deploy"
+                  element={
+                    <ProtectedRoute>
+                      <ParadiseYatraDeploy />
                     </ProtectedRoute>
                   }
                 />

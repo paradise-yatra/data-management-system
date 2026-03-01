@@ -14,6 +14,7 @@ import trashRoutes from './routes/trash.js';
 import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
 import logsRoutes from './routes/logs.js';
+import deployRoutes from './routes/deploy.js';
 import candidatesRoutes from './routes/candidates.js';
 import interactionsRoutes from './routes/interactions.js';
 import interviewsRoutes from './routes/interviews.js';
@@ -32,12 +33,14 @@ import telecallerSourcesRoutes from './routes/telecallerSources.js';
 import telecallerDestinationsRoutes from './routes/telecallerDestinations.js';
 import telecallerLogsRoutes from './routes/telecallerLogs.js';
 import telecallerTrashRoutes from './routes/telecallerTrash.js';
+import leadsPoolRoutes from './routes/leadsPool.js';
 import departmentsRoutes from './routes/departments.js';
 import backupsRoutes from './routes/backups.js';
 import notificationsRoutes from './routes/notifications.js';
 import headerFormSubmissionsRoutes from './routes/headerFormSubmissions.js';
 import newsletterRoutes from './routes/newsletterRoutes.js';
 import { authenticateToken } from './middleware/auth.js';
+import { processLeadSyncOutbox } from './services/leadSyncService.js';
 
 const app = express();
 const httpServer = createServer(app);
@@ -58,6 +61,30 @@ const allowedOrigins = [
   'http://localhost:3000', // Equinox Frontend
   'http://localhost:3002'  // Self (just in case)
 ];
+
+// Initialize Socket.io early so req.io is available in all route handlers.
+let io = new Server(httpServer, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost')) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
+    credentials: true
+  },
+  transports: ['websocket', 'polling']
+});
+
+// Initialize socket handlers
+initializeSocket(io);
+
+// Make io accessible to all routes.
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -81,6 +108,13 @@ app.use(cookieParser());
 
 // Connect to MongoDB
 connectDB();
+
+// Background sync worker (lightweight in-process polling)
+setInterval(() => {
+  processLeadSyncOutbox({ limit: 50 }).catch((error) => {
+    console.error('Lead sync worker tick failed:', error);
+  });
+}, 15000);
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -107,9 +141,12 @@ app.use('/api/telecaller-sources', telecallerSourcesRoutes);
 app.use('/api/telecaller-destinations', telecallerDestinationsRoutes);
 app.use('/api/telecaller-logs', telecallerLogsRoutes);
 app.use('/api/telecaller-trash', telecallerTrashRoutes);
+app.use('/api/leads-pool', leadsPoolRoutes);
 app.use('/api/departments', departmentsRoutes);
 app.use('/api/backups', authenticateToken, backupsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/deploy', authenticateToken, deployRoutes);
+
 // Header Form Submissions
 app.use('/api/header-form-submissions', headerFormSubmissionsRoutes);
 app.use('/api/newsletter', newsletterRoutes);
@@ -138,30 +175,6 @@ if (process.env.NODE_ENV === 'production') {
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({ error: 'Internal server error' });
-});
-
-// Initialize Socket.io
-const io = new Server(httpServer, {
-  cors: {
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost')) {
-        return callback(null, true);
-      }
-      return callback(null, false);
-    },
-    credentials: true
-  },
-  transports: ['websocket', 'polling']
-});
-
-// Initialize socket handlers
-initializeSocket(io);
-
-// Make io accessible to routes via middleware
-app.use((req, res, next) => {
-  req.io = io;
-  next();
 });
 
 // Export io for use in other modules
