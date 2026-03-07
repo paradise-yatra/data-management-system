@@ -20,6 +20,8 @@ export const RESOURCES = [
   { key: 'telecaller_transfer', label: 'Transfer Lead', path: '/sales/telecaller/transfer', description: 'Permission to transfer leads to other users', category: 'Sales', subCategory: 'Telecaller', isToggle: true },
   { key: 'telecaller_assigned', label: 'Assigned to Me', path: '/sales/telecaller/assigned', description: 'View leads assigned to current user', category: 'Sales', subCategory: 'General' },
   { key: 'leads_pool', label: 'Leads Pool', path: '/sales/leads-pool', description: 'Central lead pool for assignment and management', category: 'Sales', subCategory: 'General' },
+  { key: 'finance', label: 'Finance Hub', path: '/finance', description: 'Finance management dashboard', category: 'Finance' },
+  { key: 'finance_receipts', label: 'Receipt Generator', path: '/finance/receipts', description: 'Create and manage branded finance receipts', category: 'Finance', subCategory: 'Documents' },
 ];
 
 export const ACCESS_LEVELS = ['none', 'view', 'edit', 'full'];

@@ -15,17 +15,25 @@ interface DatePickerProps {
     setDate: (date?: Date) => void
     placeholder?: string
     className?: string
+    disabled?: boolean
 }
 
-export function DatePicker({ date, setDate, placeholder = "Pick a date", className }: DatePickerProps) {
+export function DatePicker({ date, setDate, placeholder = "Pick a date", className, disabled = false }: DatePickerProps) {
     const isValidDate = date instanceof Date && !isNaN(date.getTime());
+    const [open, setOpen] = React.useState(false);
+
+    const handleSelect = (nextDate?: Date) => {
+        setDate(nextDate)
+        setOpen(false)
+    }
 
     return (
-        <Popover>
+        <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <Button
                     variant="outline"
                     data-empty={!isValidDate}
+                    disabled={disabled}
                     className={cn(
                         "w-full justify-between text-left font-normal border-border data-[empty=true]:text-muted-foreground",
                         className
@@ -44,7 +52,7 @@ export function DatePicker({ date, setDate, placeholder = "Pick a date", classNa
                 <Calendar
                     mode="single"
                     selected={isValidDate ? date : undefined}
-                    onSelect={setDate}
+                    onSelect={handleSelect}
                     initialFocus
                 />
             </PopoverContent>

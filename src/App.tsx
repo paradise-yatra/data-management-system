@@ -38,6 +38,8 @@ import BackupsPanel from "./pages/BackupsPanel";
 import Notifications from "./pages/Notifications";
 import LeadsPool from "./pages/LeadsPool";
 import ParadiseYatraDeploy from "./pages/ParadiseYatraDeploy";
+import Finance from "./pages/Finance";
+import FinanceReceipts from "./pages/finance/FinanceReceipts";
 
 const queryClient = new QueryClient();
 
@@ -201,6 +203,22 @@ const App = () => (
                   element={
                     <ProtectedRoute resourceKey="leads_pool" requiredLevel="view">
                       <LeadsPool />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/finance"
+                  element={
+                    <ProtectedRoute resourceKey="finance" requiredLevel="view">
+                      <Finance />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/finance/receipts/*"
+                  element={
+                    <ProtectedRoute resourceKey="finance_receipts" requiredLevel="view">
+                      <FinanceReceipts />
                     </ProtectedRoute>
                   }
                 />

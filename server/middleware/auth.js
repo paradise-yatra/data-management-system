@@ -28,6 +28,11 @@ export const authenticateToken = async (req, res, next) => {
       token = req.cookies.token;
     }
 
+    // Check query parameter (used by EventSource/SSE which can't send headers)
+    if (!token && req.query && req.query.token) {
+      token = req.query.token;
+    }
+
     // If no token found
     if (!token) {
       return res.status(401).json({ error: 'Access denied. No token provided.' });
@@ -69,8 +74,8 @@ export const authorizeRoles = (...allowedRoles) => {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        error: `Access denied. Required role: ${allowedRoles.join(' or ')}. Your role: ${req.user.role}` 
+      return res.status(403).json({
+        error: `Access denied. Required role: ${allowedRoles.join(' or ')}. Your role: ${req.user.role}`
       });
     }
 

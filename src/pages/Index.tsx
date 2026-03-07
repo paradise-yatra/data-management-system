@@ -36,6 +36,7 @@ import { Sidebar } from '@/components/Sidebar';
 const pathToResourceKey: Record<string, string> = {
   '/human-resource-management': 'hr_portal',
   '/data-management': 'data_management',
+  '/finance': 'finance',
 };
 
 const Index = () => {
@@ -78,10 +79,10 @@ const Index = () => {
     },
     {
       title: 'Finance',
-      description: 'Invoices & Budgeting',
+      description: 'Receipts & collections',
       icon: <CreditCard className="h-6 w-6" />,
       path: '/finance',
-      comingSoon: true,
+      comingSoon: false,
     },
     {
       title: 'IT Support',

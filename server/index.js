@@ -39,6 +39,8 @@ import backupsRoutes from './routes/backups.js';
 import notificationsRoutes from './routes/notifications.js';
 import headerFormSubmissionsRoutes from './routes/headerFormSubmissions.js';
 import newsletterRoutes from './routes/newsletterRoutes.js';
+import financeReceiptsRoutes from './routes/financeReceipts.js';
+import receiptSettingsRoutes from './routes/receiptSettings.js';
 import { authenticateToken } from './middleware/auth.js';
 import { processLeadSyncOutbox } from './services/leadSyncService.js';
 
@@ -150,6 +152,8 @@ app.use('/api/deploy', authenticateToken, deployRoutes);
 // Header Form Submissions
 app.use('/api/header-form-submissions', headerFormSubmissionsRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/finance/receipts', financeReceiptsRoutes);
+app.use('/api/finance/receipt-settings', receiptSettingsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

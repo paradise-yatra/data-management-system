@@ -30,6 +30,7 @@ import {
     DollarSign,
     TrendingUp,
     Megaphone,
+    List,
     Inbox
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -65,7 +66,7 @@ interface NavItem {
 
 interface SidebarProps {
     activePage?: string;
-    project?: 'crm' | 'voya-trail' | 'telecaller' | 'sales';
+    project?: 'crm' | 'voya-trail' | 'telecaller' | 'sales' | 'finance';
 }
 
 const pathToResourceKey: Record<string, string> = {
@@ -87,6 +88,8 @@ const pathToResourceKey: Record<string, string> = {
     '/sales/telecaller': 'telecaller_panel',
     '/sales/assigned': 'telecaller_assigned',
     '/sales/leads-pool': 'leads_pool',
+    '/finance': 'finance',
+    '/finance/receipts': 'finance_receipts',
     '/telecaller': 'telecaller_panel',
     '/backups': 'backup_management',
 };
@@ -155,7 +158,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
         }
 
         // Exact match for root/dashboard paths to avoid highlighting parents when sub-items are active
-        if (path === '/' || path === '/telecaller' || path === '/sales/telecaller' || path === '/sales' || path === '/voya-trail') {
+        if (path === '/' || path === '/telecaller' || path === '/sales/telecaller' || path === '/sales' || path === '/voya-trail' || path === '/finance') {
             return location.pathname === path;
         }
 
@@ -207,7 +210,7 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
         {
             label: 'Finance',
             icon: <DollarSign className="h-4 w-4" />,
-            path: '#',
+            path: '/finance',
         },
     ];
 
@@ -298,6 +301,25 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
         },
     ];
 
+    const financeItems: NavItem[] = [
+        {
+            label: 'Finance Hub',
+            icon: <DollarSign className="h-4 w-4" />,
+            path: '/finance',
+        },
+        {
+            label: 'Receipts',
+            icon: <CreditCard className="h-4 w-4" />,
+            path: '#',
+            hoverMenu: true,
+            subItems: [
+                { label: 'All Receipts', icon: <List className="h-3.5 w-3.5" />, path: '/finance/receipts' },
+                { label: 'History & Exports', icon: <Files className="h-3.5 w-3.5" />, path: '/finance/receipts/history' },
+                { label: 'Settings', icon: <Settings className="h-3.5 w-3.5" />, path: '/finance/receipts/settings' }
+            ]
+        },
+    ];
+
     const telecallerItems: NavItem[] = [
         {
             label: 'Dashboard',
@@ -353,21 +375,24 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
 
     const isRbacPanel = location.pathname.startsWith('/rbac');
     const isSalesPanel = location.pathname.startsWith('/sales') || project === 'sales';
+    const isFinancePanel = location.pathname.startsWith('/finance') || project === 'finance';
     const isVoyaTrailPanel = project === 'voya-trail' || location.pathname.startsWith('/voya-trail');
 
     const currentNavItems = (project === 'voya-trail')
         ? filterNavItems(voyaTrailItems)
         : project === 'telecaller'
             ? filterNavItems(telecallerItems)
-            : isSalesPanel
-                ? filterNavItems(salesItems)
-                : isRbacPanel
-                    ? []
-                    : filterNavItems(navItems);
+            : isFinancePanel
+                ? filterNavItems(financeItems)
+                : isSalesPanel
+                    ? filterNavItems(salesItems)
+                    : isRbacPanel
+                        ? []
+                        : filterNavItems(navItems);
 
-    const currentModuleItems = (project === 'voya-trail' || project === 'telecaller' || project === 'sales' || isRbacPanel || isSalesPanel) ? [] : filterModuleItems(moduleItems);
+    const currentModuleItems = (project === 'voya-trail' || project === 'telecaller' || project === 'sales' || project === 'finance' || isRbacPanel || isSalesPanel || isFinancePanel) ? [] : filterModuleItems(moduleItems);
 
-    const currentRbacItems = (project === 'voya-trail' || project === 'telecaller' || project === 'sales' || isSalesPanel || !isRbacPanel)
+    const currentRbacItems = (project === 'voya-trail' || project === 'telecaller' || project === 'sales' || project === 'finance' || isSalesPanel || isFinancePanel || !isRbacPanel)
         ? []
         : filterNavItems(rbacItems);
 
@@ -985,4 +1010,3 @@ export const Sidebar = ({ activePage, project = 'crm' }: SidebarProps) => {
         </motion.aside>
     );
 };
-

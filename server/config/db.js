@@ -209,3 +209,34 @@ export const getLeadsPoolConnection = () => {
   }
 };
 
+let financeConnection;
+
+export const getFinanceConnection = () => {
+  if (financeConnection) {
+    return financeConnection;
+  }
+
+  if (!process.env.MONGODB_URI) {
+    console.error('MONGODB_URI is not defined in .env file');
+    return null;
+  }
+
+  try {
+    financeConnection = mongoose.createConnection(process.env.MONGODB_URI, {
+      dbName: 'Finance'
+    });
+
+    financeConnection.on('connected', () => {
+      console.log('Finance MongoDB Connected');
+    });
+
+    financeConnection.on('error', (err) => {
+      console.error('Finance MongoDB Connection Error:', err);
+    });
+
+    return financeConnection;
+  } catch (error) {
+    console.error('Error creating Finance DB connection:', error);
+    return null;
+  }
+};

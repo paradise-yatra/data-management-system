@@ -1,0 +1,344 @@
+import { CopyPlus, FileCheck2, MapPinned, NotebookPen, Save, ShieldBan, UserRound, WalletCards, IndianRupee, CalendarDays } from 'lucide-react';
+import type { LeadPoolRecord } from '@/types/leadsPool';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import type {
+  PaymentMode,
+  ReceiptPayload,
+  ReceiptRecord,
+  ReceiptType,
+} from '@/services/financeApi';
+
+interface ReceiptEditorPanelProps {
+  draft: ReceiptPayload;
+  activeReceipt: ReceiptRecord | null;
+  leads: LeadPoolRecord[];
+  dirty: boolean;
+  saving: boolean;
+  issuing: boolean;
+  previewing: boolean;
+  onCreateFresh: () => void;
+  onSelectLead: (leadId: string) => void;
+  onTypeChange: (value: ReceiptType) => void;
+  onCustomerChange: (field: 'leadName' | 'phone' | 'email' | 'address', value: string) => void;
+  onTripChange: (
+    field: 'tripName' | 'destination' | 'travelStartDate' | 'travelEndDate',
+    value: string
+  ) => void;
+  onPaymentChange: (
+    field: 'paymentDate' | 'paymentMode' | 'transactionReference' | 'receivedAmount',
+    value: string | number
+  ) => void;
+  onTotalsChange: (field: 'packageAmount' | 'previousPayments', value: number) => void;
+  onNotesChange: (field: 'publicNote' | 'internalNote', value: string) => void;
+  onSave: () => void;
+  onIssue: () => void;
+  onVoid: () => void;
+}
+
+const PAYMENT_MODE_OPTIONS: PaymentMode[] = ['Cash', 'UPI', 'Bank Transfer', 'Card', 'Cheque', 'Other'];
+
+const formatINR = (amount: number) =>
+  new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+
+export function ReceiptEditorPanel({
+  draft,
+  activeReceipt,
+  leads,
+  dirty,
+  saving,
+  issuing,
+  previewing,
+  onCreateFresh,
+  onSelectLead,
+  onTypeChange,
+  onCustomerChange,
+  onTripChange,
+  onPaymentChange,
+  onTotalsChange,
+  onNotesChange,
+  onSave,
+  onIssue,
+  onVoid,
+}: ReceiptEditorPanelProps) {
+  const readOnly = activeReceipt?.status === 'ISSUED' || activeReceipt?.status === 'VOID';
+  const pendingAmount =
+    (draft.totals?.packageAmount ?? 0) -
+    ((draft.totals?.previousPayments ?? 0) + (draft.payment?.receivedAmount ?? 0));
+  const settled = pendingAmount <= 0;
+  const leadOptions = leads.map((lead) => ({
+    label: `${lead.leadName || lead.phone} (${lead.phone})`,
+    value: lead._id || '',
+  }));
+
+  const statusColor = activeReceipt?.status === 'ISSUED'
+    ? 'border-emerald-300/50 bg-emerald-500/10 text-emerald-700'
+    : activeReceipt?.status === 'VOID'
+      ? 'border-rose-300/50 bg-rose-500/10 text-rose-700'
+      : 'border-amber-300/50 bg-amber-500/10 text-amber-700';
+
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="max-w-5xl mx-auto p-6 pb-24 flex flex-col gap-6">
+
+        {/* ── ACTION BAR ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-foreground">
+              {activeReceipt?.receiptNumber || (activeReceipt?._id ? 'Receipt Editor' : 'New Receipt Draft')}
+            </h2>
+            <Badge variant="outline" className={statusColor}>
+              {activeReceipt?.status || 'DRAFT'}
+            </Badge>
+            {dirty && <Badge variant="outline" className="border-amber-300/50 bg-amber-500/10 text-amber-700 text-xs">Unsaved</Badge>}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={onCreateFresh} className="gap-1.5 h-8">
+              <CopyPlus className="h-3.5 w-3.5" />
+              Fresh Draft
+            </Button>
+            {!readOnly && (
+              <>
+                <Button type="button" variant="outline" size="sm" onClick={onSave} disabled={saving || !dirty} className="gap-1.5 h-8">
+                  <Save className="h-3.5 w-3.5" />
+                  {saving ? 'Saving...' : dirty ? 'Save Draft' : 'Saved'}
+                </Button>
+                <Button type="button" size="sm" onClick={onIssue} disabled={issuing || saving} className="gap-1.5 h-8">
+                  <FileCheck2 className="h-3.5 w-3.5" />
+                  {issuing ? 'Issuing...' : 'Issue Receipt'}
+                </Button>
+              </>
+            )}
+            {activeReceipt?.status === 'ISSUED' && (
+              <Button type="button" variant="destructive" size="sm" onClick={onVoid} className="gap-1.5 h-8">
+                <ShieldBan className="h-3.5 w-3.5" />
+                Void
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* ── STAT CARDS ── */}
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
+          <div className="rounded-xl border border-border bg-card px-4 py-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</p>
+            <p className="text-base font-bold mt-1">{activeReceipt?.status || 'DRAFT'}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Payment Date</p>
+            <p className="text-base font-bold mt-1">{draft.payment?.paymentDate || '—'}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Received</p>
+            <p className="text-base font-bold text-emerald-600 mt-1">{formatINR(draft.payment?.receivedAmount ?? 0)}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card px-4 py-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pending</p>
+            <p className={`text-base font-bold mt-1 ${settled ? 'text-emerald-600' : 'text-foreground'}`}>
+              {settled ? 'Settled' : formatINR(pendingAmount)}
+            </p>
+          </div>
+        </div>
+
+        {/* ── RECEIPT SETUP ── */}
+        <section className="rounded-xl border border-border bg-card shadow-sm">
+          <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/60 bg-muted/10">
+            <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+              <WalletCards className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">Receipt Setup</p>
+              <p className="text-xs text-muted-foreground">Link a lead and configure payment context.</p>
+            </div>
+          </div>
+          <div className="p-5 grid gap-4 md:grid-cols-2">
+            <div className="space-y-1.5 md:col-span-2">
+              <Label className="text-xs font-medium">Link Pool Lead</Label>
+              <SearchableSelect
+                options={leadOptions}
+                value={draft.linkedLeadId || undefined}
+                onChange={onSelectLead}
+                placeholder="Select pool lead..."
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Receipt Type</Label>
+              <Select value={draft.type || 'ADVANCE'} onValueChange={(value) => onTypeChange(value as ReceiptType)} disabled={readOnly}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ADVANCE">Advance</SelectItem>
+                  <SelectItem value="PARTIAL">Partial</SelectItem>
+                  <SelectItem value="FULL">Full</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Payment Mode</Label>
+              <Select value={draft.payment?.paymentMode || 'UPI'} onValueChange={(value) => onPaymentChange('paymentMode', value as PaymentMode)} disabled={readOnly}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_MODE_OPTIONS.map((mode) => (
+                    <SelectItem key={mode} value={mode}>{mode}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Payment Date</Label>
+              <Input type="date" value={draft.payment?.paymentDate || ''} onChange={(event) => onPaymentChange('paymentDate', event.target.value)} disabled={readOnly} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Transaction Reference</Label>
+              <Input value={draft.payment?.transactionReference || ''} onChange={(event) => onPaymentChange('transactionReference', event.target.value)} disabled={readOnly} placeholder="UTR / Txn ID" />
+            </div>
+          </div>
+        </section>
+
+        {/* ── CUSTOMER + TRAVEL ── */}
+        <div className="grid gap-5 xl:grid-cols-2">
+          {/* Customer */}
+          <section className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/60 bg-muted/10">
+              <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+                <UserRound className="h-4 w-4" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">Customer Details</p>
+            </div>
+            <div className="p-5 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-medium">Lead Name</Label>
+                <Input value={draft.customer?.leadName || ''} onChange={(event) => onCustomerChange('leadName', event.target.value)} disabled={readOnly} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Phone</Label>
+                <Input value={draft.customer?.phone || ''} onChange={(event) => onCustomerChange('phone', event.target.value)} disabled={readOnly} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Email</Label>
+                <Input value={draft.customer?.email || ''} onChange={(event) => onCustomerChange('email', event.target.value)} disabled={readOnly} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-medium">Address</Label>
+                <Textarea value={draft.customer?.address || ''} onChange={(event) => onCustomerChange('address', event.target.value)} disabled={readOnly} className="min-h-[72px] resize-none" />
+              </div>
+            </div>
+          </section>
+
+          {/* Travel */}
+          <section className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/60 bg-muted/10">
+              <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+                <MapPinned className="h-4 w-4" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">Travel Details</p>
+            </div>
+            <div className="p-5 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-medium">Trip Name</Label>
+                <Input value={draft.tripDetails?.tripName || ''} onChange={(event) => onTripChange('tripName', event.target.value)} disabled={readOnly} />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-medium">Destination</Label>
+                <Input value={draft.tripDetails?.destination || ''} onChange={(event) => onTripChange('destination', event.target.value)} disabled={readOnly} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Travel Start</Label>
+                <Input type="date" value={draft.tripDetails?.travelStartDate || ''} onChange={(event) => onTripChange('travelStartDate', event.target.value)} disabled={readOnly} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Travel End</Label>
+                <Input type="date" value={draft.tripDetails?.travelEndDate || ''} onChange={(event) => onTripChange('travelEndDate', event.target.value)} disabled={readOnly} />
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* ── PAYMENT + FINANCIAL SUMMARY ── */}
+        <div className="grid gap-5 xl:grid-cols-2">
+          {/* Payment */}
+          <section className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/60 bg-muted/10">
+              <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+                <IndianRupee className="h-4 w-4" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">Payment</p>
+            </div>
+            <div className="p-5 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label className="text-xs font-medium">Received Amount</Label>
+                <Input type="number" min={0} value={draft.payment?.receivedAmount ?? 0} onChange={(event) => onPaymentChange('receivedAmount', Number(event.target.value || 0))} disabled={readOnly} />
+              </div>
+              <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 sm:col-span-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Collection Mode</p>
+                <p className="mt-0.5 text-sm font-semibold text-foreground">{draft.payment?.paymentMode || 'UPI'}</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Financial Summary */}
+          <section className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/60 bg-muted/10">
+              <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+                <CalendarDays className="h-4 w-4" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">Financial Summary</p>
+            </div>
+            <div className="p-5 grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Package Amount</Label>
+                <Input type="number" min={0} value={draft.totals?.packageAmount ?? 0} onChange={(event) => onTotalsChange('packageAmount', Number(event.target.value || 0))} disabled={readOnly} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Previous Payments</Label>
+                <Input type="number" min={0} value={draft.totals?.previousPayments ?? 0} onChange={(event) => onTotalsChange('previousPayments', Number(event.target.value || 0))} disabled={readOnly} />
+              </div>
+              <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 sm:col-span-2">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-700/80">Computed Balance</p>
+                <p className="mt-0.5 text-base font-bold text-emerald-800">
+                  {pendingAmount > 0 ? formatINR(pendingAmount) : 'Settled'}
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* ── NOTES ── */}
+        <section className="rounded-xl border border-border bg-card shadow-sm">
+          <div className="flex items-center gap-3 px-5 py-3.5 border-b border-border/60 bg-muted/10">
+            <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+              <NotebookPen className="h-4 w-4" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">Notes</p>
+          </div>
+          <div className="p-5 grid gap-4 xl:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Public Note</Label>
+              <Textarea value={draft.notes?.publicNote || ''} onChange={(event) => onNotesChange('publicNote', event.target.value)} disabled={readOnly} className="min-h-[100px] resize-none" placeholder="Visible on the receipt..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Internal Note</Label>
+              <Textarea value={draft.notes?.internalNote || ''} onChange={(event) => onNotesChange('internalNote', event.target.value)} disabled={readOnly} className="min-h-[100px] resize-none" placeholder="Internal use only..." />
+            </div>
+          </div>
+        </section>
+
+        {previewing && (
+          <div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
+            Updating live preview...
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

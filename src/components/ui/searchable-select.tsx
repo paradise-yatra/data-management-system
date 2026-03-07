@@ -29,6 +29,7 @@ interface SearchableSelectProps {
     placeholder?: string
     className?: string
     width?: string
+    disabled?: boolean
 }
 
 export function SearchableSelect({
@@ -38,6 +39,7 @@ export function SearchableSelect({
     placeholder = "Select option...",
     className,
     width = "w-full",
+    disabled,
 }: SearchableSelectProps) {
     const [open, setOpen] = React.useState(false)
 
@@ -50,6 +52,7 @@ export function SearchableSelect({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
+                    disabled={disabled}
                     className={cn(
                         width,
                         "justify-between h-10 px-3 border-border font-normal bg-background",
