@@ -58,18 +58,38 @@ const rootDir = path.resolve(__dirname, '..');
 // Trust proxy for accurate IP address extraction (when behind reverse proxy/load balancer)
 app.set('trust proxy', true);
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:8080',
-  'http://localhost:3000', // Equinox Frontend
-  'http://localhost:3002'  // Self (just in case)
+const defaultAllowedOrigins = [
+  'http://localhost:8080',
+  'http://localhost:3000',
+  'http://localhost:3002',
+  'http://127.0.0.1:3000',
+  'https://voyatrail.com',
+  'https://www.voyatrail.com'
 ];
+
+const allowedOrigins = Array.from(
+  new Set(
+    [process.env.FRONTEND_URL, process.env.FRONTEND_URLS]
+      .filter(Boolean)
+      .flatMap((value) => String(value).split(','))
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+      .concat(defaultAllowedOrigins)
+  )
+);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (origin.startsWith('http://localhost')) return true;
+  return false;
+};
 
 // Initialize Socket.io early so req.io is available in all route handlers.
 let io = new Server(httpServer, {
   cors: {
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost')) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       return callback(null, false);
@@ -90,18 +110,10 @@ app.use((req, res, next) => {
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      // For development, you might want to allow all, but let's be specific
-      // return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
-      // Actually, for dev ease, let's just allow it if it matches localhost
-      if (origin.startsWith('http://localhost')) {
-        return callback(null, true);
-      }
-      return callback(null, false);
+    if (isAllowedOrigin(origin)) {
+      return callback(null, true);
     }
-    return callback(null, true);
+    return callback(null, false);
   },
   credentials: true, // Allow cookies to be sent
 }));
