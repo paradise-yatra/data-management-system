@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Sidebar } from '@/components/Sidebar';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
     Table,
@@ -75,7 +76,10 @@ export default function BackupsPanel() {
     const [isLoading, setIsLoading] = useState(true);
     const [isBackingUp, setIsBackingUp] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState<Backup | null>(null);
+    const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [selectedBackups, setSelectedBackups] = useState<string[]>([]);
+    const [lastSelectedIndex, setLastSelectedIndex] = useState<number | null>(null);
 
     const fetchBackups = useCallback(async () => {
         if (!isAdmin) return;
@@ -206,6 +210,16 @@ export default function BackupsPanel() {
         fetchSchedule();
     }, [fetchBackups, fetchSchedule]);
 
+    useEffect(() => {
+        setSelectedBackups((prev) =>
+            prev.filter((filename) => backups.some((backup) => backup.filename === filename))
+        );
+        setLastSelectedIndex((prev) => {
+            if (prev === null) return null;
+            return prev >= backups.length ? null : prev;
+        });
+    }, [backups]);
+
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleDateString('en-IN', {
@@ -216,6 +230,87 @@ export default function BackupsPanel() {
             minute: '2-digit',
             hour12: true
         });
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedBackups(backups.map((backup) => backup.filename));
+        } else {
+            setSelectedBackups([]);
+        }
+        setLastSelectedIndex(null);
+    };
+
+    const handleToggleSelection = (index: number, shiftKey: boolean) => {
+        const backup = backups[index];
+        if (!backup) return;
+
+        setSelectedBackups((prev) => {
+            const isSelected = prev.includes(backup.filename);
+            const nextChecked = !isSelected;
+
+            if (shiftKey && lastSelectedIndex !== null && lastSelectedIndex !== index) {
+                const start = Math.min(lastSelectedIndex, index);
+                const end = Math.max(lastSelectedIndex, index);
+                const range = backups.slice(start, end + 1).map((item) => item.filename);
+
+                if (nextChecked) {
+                    const next = new Set(prev);
+                    range.forEach((name) => next.add(name));
+                    return Array.from(next);
+                }
+
+                return prev.filter((name) => !range.includes(name));
+            }
+
+            if (nextChecked) {
+                return [...prev, backup.filename];
+            }
+
+            return prev.filter((name) => name !== backup.filename);
+        });
+
+        setLastSelectedIndex(index);
+    };
+
+    const deleteSelectedBackups = async () => {
+        if (selectedBackups.length === 0) return;
+        setIsDeleting(true);
+        try {
+            const targets = [...selectedBackups];
+            const results = await Promise.allSettled(
+                targets.map(async (filename) => {
+                    const response = await fetch(`${API_BASE_URL}/backups/${filename}`, {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    });
+                    if (!response.ok) throw new Error(`Failed to delete ${filename}`);
+                    return filename;
+                })
+            );
+
+            const failedTargets = results
+                .map((result, idx) => (result.status === 'rejected' ? targets[idx] : null))
+                .filter((filename): filename is string => Boolean(filename));
+
+            const successCount = targets.length - failedTargets.length;
+
+            if (successCount > 0) {
+                toast.success(`${successCount} backup${successCount === 1 ? '' : 's'} deleted`);
+            }
+            if (failedTargets.length > 0) {
+                toast.error(`Failed to delete ${failedTargets.length} backup${failedTargets.length === 1 ? '' : 's'}`);
+            }
+
+            setBulkDeleteConfirm(false);
+            setSelectedBackups(failedTargets);
+            fetchBackups();
+        } catch (error) {
+            console.error('Error deleting selected backups:', error);
+            toast.error('Failed to delete selected backups');
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     return (
@@ -328,6 +423,22 @@ export default function BackupsPanel() {
                                         All database backups are automatically deleted after 30 days
                                     </CardDescription>
                                 </div>
+                                <div className="flex items-center gap-3">
+                                    {selectedBackups.length > 0 && (
+                                        <span className="text-sm text-muted-foreground">
+                                            {selectedBackups.length} selected
+                                        </span>
+                                    )}
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => setBulkDeleteConfirm(true)}
+                                        disabled={selectedBackups.length === 0 || isDeleting}
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete Selected
+                                    </Button>
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -348,6 +459,23 @@ export default function BackupsPanel() {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
+                                                <TableHead className="w-12">
+                                                    <Checkbox
+                                                        checked={
+                                                            backups.length === 0
+                                                                ? false
+                                                                : selectedBackups.length === backups.length
+                                                                    ? true
+                                                                    : selectedBackups.length > 0
+                                                                        ? 'indeterminate'
+                                                                        : false
+                                                        }
+                                                        onClick={(event) => {
+                                                            event.stopPropagation();
+                                                            handleSelectAll(selectedBackups.length !== backups.length);
+                                                        }}
+                                                    />
+                                                </TableHead>
                                                 <TableHead>Filename</TableHead>
                                                 <TableHead>Created</TableHead>
                                                 <TableHead>Size</TableHead>
@@ -363,8 +491,24 @@ export default function BackupsPanel() {
                                                         animate={{ opacity: 1, y: 0 }}
                                                         exit={{ opacity: 0, x: -10 }}
                                                         transition={{ delay: index * 0.05 }}
-                                                        className="border-b transition-colors hover:bg-muted/50"
+                                                        onClick={(event) => {
+                                                            if ((event.target as HTMLElement).closest('button')) return;
+                                                            handleToggleSelection(index, event.shiftKey);
+                                                        }}
+                                                        className={cn(
+                                                            "border-b transition-colors hover:bg-muted/50 cursor-pointer",
+                                                            selectedBackups.includes(backup.filename) && "bg-muted/40"
+                                                        )}
                                                     >
+                                                        <TableCell onClick={(event) => event.stopPropagation()}>
+                                                            <Checkbox
+                                                                checked={selectedBackups.includes(backup.filename)}
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
+                                                                    handleToggleSelection(index, event.shiftKey);
+                                                                }}
+                                                            />
+                                                        </TableCell>
                                                         <TableCell className="font-medium">
                                                             <div className="flex items-center gap-2">
                                                                 <FileArchive className="h-4 w-4 text-primary" />
@@ -380,7 +524,7 @@ export default function BackupsPanel() {
                                                         <TableCell>
                                                             <span className="font-medium">{backup.sizeFormatted}</span>
                                                         </TableCell>
-                                                        <TableCell className="text-right">
+                                                        <TableCell className="text-right" onClick={(event) => event.stopPropagation()}>
                                                             <div className="flex justify-end gap-2">
                                                                 <Tooltip>
                                                                     <TooltipTrigger asChild>
@@ -476,6 +620,61 @@ export default function BackupsPanel() {
                                     <Trash2 className="h-4 w-4 mr-2" />
                                 )}
                                 Delete Backup
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Bulk Delete Confirmation Dialog */}
+                <Dialog open={bulkDeleteConfirm} onOpenChange={setBulkDeleteConfirm}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5 text-destructive" />
+                                Delete Selected Backups
+                            </DialogTitle>
+                            <DialogDescription>
+                                You are about to delete {selectedBackups.length} backup{selectedBackups.length === 1 ? '' : 's'}. This action cannot be undone.
+                            </DialogDescription>
+                        </DialogHeader>
+                        {selectedBackups.length > 0 && (
+                            <div className="bg-muted/50 rounded-lg p-4 my-4">
+                                <div className="space-y-1 text-sm">
+                                    {backups
+                                        .filter((backup) => selectedBackups.includes(backup.filename))
+                                        .slice(0, 6)
+                                        .map((backup) => (
+                                            <p key={backup.filename} className="truncate">
+                                                {backup.filename}
+                                            </p>
+                                        ))}
+                                    {selectedBackups.length > 6 && (
+                                        <p className="text-muted-foreground">
+                                            And {selectedBackups.length - 6} more...
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => setBulkDeleteConfirm(false)}
+                                disabled={isDeleting}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={deleteSelectedBackups}
+                                disabled={isDeleting || selectedBackups.length === 0}
+                            >
+                                {isDeleting ? (
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                )}
+                                Delete Selected
                             </Button>
                         </DialogFooter>
                     </DialogContent>
